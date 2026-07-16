@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends
+from graph.dependency_graph import DependencyGraphService
 from parser.tree_sitter_parser import TreeSitterParserService
 
 from backend.app.core.config import Settings, get_cached_settings
@@ -69,3 +70,11 @@ def get_metadata_service(
 def get_tree_sitter_parser_service() -> TreeSitterParserService:
     """Provide Tree-sitter parsing operations to API routes."""
     return TreeSitterParserService()
+
+
+def get_dependency_graph_service(
+    scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
+    parser: Annotated[TreeSitterParserService, Depends(get_tree_sitter_parser_service)],
+) -> DependencyGraphService:
+    """Provide dependency graph construction operations to API routes."""
+    return DependencyGraphService(scanner=scanner, parser=parser)

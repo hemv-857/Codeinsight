@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from graph.dependency_graph import DependencyGraph, DependencyGraphError, DependencyGraphService
 from parser.tree_sitter_parser import (
     ParseTreeSummary,
     TreeSitterParseError,
@@ -9,10 +10,18 @@ from parser.tree_sitter_parser import (
 )
 
 from backend.app.core.dependencies import (
+    get_dependency_graph_service,
     get_metadata_service,
     get_repository_import_service,
     get_repository_scanner_service,
     get_tree_sitter_parser_service,
+)
+from backend.app.schemas.dependency_graph import (
+    DependencyEdgeResponse,
+    DependencyGraphRequest,
+    DependencyGraphResponse,
+    DependencyGraphStatsResponse,
+    DependencyNodeResponse,
 )
 from backend.app.schemas.metadata import MetadataPersistRequest, StoredRepositoryMetadata
 from backend.app.schemas.parse import (
@@ -29,6 +38,36 @@ from backend.app.services.repository_import import RepositoryImportError, Reposi
 from backend.app.services.repository_scanner import RepositoryScanError, RepositoryScannerService
 
 router = APIRouter(prefix="/api/repositories", tags=["repositories"])
+
+
+def to_dependency_graph_response(graph: DependencyGraph) -> DependencyGraphResponse:
+    """Convert graph-domain output into an API response."""
+    return DependencyGraphResponse(
+        repository_path=graph.repository_path,
+        nodes=[
+            DependencyNodeResponse(path=node.path, language=node.language) for node in graph.nodes
+        ],
+        edges=[
+            DependencyEdgeResponse(
+                source=edge.source,
+                target=edge.target,
+                import_name=edge.import_name,
+                import_source=edge.import_source,
+                dependency_type=edge.dependency_type,
+            )
+            for edge in graph.edges
+        ],
+        external_dependencies=list(graph.external_dependencies),
+        unresolved_imports=list(graph.unresolved_imports),
+        circular_dependencies=[list(cycle) for cycle in graph.circular_dependencies],
+        stats=DependencyGraphStatsResponse(
+            file_count=graph.stats.file_count,
+            internal_dependency_count=graph.stats.internal_dependency_count,
+            external_dependency_count=graph.stats.external_dependency_count,
+            unresolved_dependency_count=graph.stats.unresolved_dependency_count,
+            circular_dependency_count=graph.stats.circular_dependency_count,
+        ),
+    )
 
 
 def to_parse_response(result: ParseTreeSummary) -> ParseTreeResponse:
@@ -221,4 +260,36 @@ def parse_imported_repository(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except (RepositoryScanError, TreeSitterParseError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/dependency-graph", response_model=DependencyGraphResponse)
+def build_dependency_graph(
+    request: DependencyGraphRequest,
+    service: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
+) -> DependencyGraphResponse:
+    """Build a file-level dependency graph for a repository path."""
+    try:
+        return to_dependency_graph_response(service.build(request.repository_path))
+    except (RepositoryScanError, DependencyGraphError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get("/imports/{import_id}/dependency-graph", response_model=DependencyGraphResponse)
+def build_imported_repository_dependency_graph(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
+) -> DependencyGraphResponse:
+    """Build a dependency graph for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise DependencyGraphError("Repository import has no local path to graph.")
+        return to_dependency_graph_response(
+            service.build(Path(imported_repository.repository_path))
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (RepositoryScanError, DependencyGraphError) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
