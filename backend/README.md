@@ -100,6 +100,9 @@ Repository import endpoints:
 
 Parse responses include compact AST metadata and extracted source symbols.
 Supported parser languages are C, C++, Go, Java, JavaScript, Python, Rust, and TypeScript.
+Tree-sitter parse results are cached in process by file path, size, and
+modification time to avoid repeated parsing during graph, summary, and review
+workflows.
 Dependency graph responses include file nodes, dependency edges, external imports,
 unresolved imports, circular dependencies, and graph statistics.
 Call graph responses include callable nodes, call edges, unresolved calls, recursive

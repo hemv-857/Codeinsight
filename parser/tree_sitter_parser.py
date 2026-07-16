@@ -1,6 +1,8 @@
+from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from threading import Lock
 
 import tree_sitter_c
 import tree_sitter_cpp
@@ -98,12 +100,20 @@ LANGUAGE_BY_EXTENSION = {
     ".tsx": LanguageDefinition("TypeScript", tree_sitter_typescript.language_tsx),
 }
 
+DEFAULT_PARSE_CACHE_ENTRIES = 1024
+ParseCacheKey = tuple[str, int, int]
+
 
 class TreeSitterParserService:
     """Parses supported source files with Tree-sitter."""
 
-    def __init__(self) -> None:
+    def __init__(self, max_cache_entries: int = DEFAULT_PARSE_CACHE_ENTRIES) -> None:
+        if max_cache_entries <= 0:
+            raise ValueError("max_cache_entries must be positive.")
         self._parsers: dict[str, Parser] = {}
+        self._max_cache_entries = max_cache_entries
+        self._cache: OrderedDict[ParseCacheKey, ParseTreeSummary] = OrderedDict()
+        self._cache_lock = Lock()
 
     def parse_file(self, path: Path) -> ParseTreeSummary:
         source_path = path.expanduser().resolve()
@@ -114,13 +124,19 @@ class TreeSitterParserService:
         if definition is None:
             raise TreeSitterParseError("Source file language is not supported by Tree-sitter yet.")
 
+        stat = source_path.stat()
+        cache_key = (str(source_path), stat.st_mtime_ns, stat.st_size)
+        cached = self._cached(cache_key)
+        if cached is not None:
+            return cached
+
         source = source_path.read_bytes()
         parser = self._get_parser(source_path.suffix.lower(), definition)
         tree = parser.parse(source)
         root = tree.root_node
         symbols = tuple(self._extract_symbols(root, source))
         calls = tuple(self._extract_calls(root, source))
-        return ParseTreeSummary(
+        summary = ParseTreeSummary(
             path=str(source_path),
             language=definition.name,
             root_node_type=root.type,
@@ -133,6 +149,8 @@ class TreeSitterParserService:
             symbols=symbols,
             calls=calls,
         )
+        self._store_cache(cache_key, summary)
+        return summary
 
     def supports_path(self, path: Path) -> bool:
         """Return whether a path has a supported parser extension."""
@@ -144,6 +162,25 @@ class TreeSitterParserService:
             parser = Parser(Language(definition.load_language()))
             self._parsers[key] = parser
         return parser
+
+    def _cached(self, cache_key: ParseCacheKey) -> ParseTreeSummary | None:
+        with self._cache_lock:
+            cached = self._cache.get(cache_key)
+            if cached is None:
+                return None
+            self._cache.move_to_end(cache_key)
+            return cached
+
+    def _store_cache(self, cache_key: ParseCacheKey, summary: ParseTreeSummary) -> None:
+        with self._cache_lock:
+            path = cache_key[0]
+            for key in tuple(self._cache):
+                if key[0] == path and key != cache_key:
+                    self._cache.pop(key)
+            self._cache[cache_key] = summary
+            self._cache.move_to_end(cache_key)
+            while len(self._cache) > self._max_cache_entries:
+                self._cache.popitem(last=False)
 
     def _extract_symbols(self, root: Node, source: bytes) -> list[SourceSymbol]:
         symbols: list[SourceSymbol] = []

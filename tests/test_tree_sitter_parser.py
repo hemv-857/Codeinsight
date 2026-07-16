@@ -1,3 +1,4 @@
+import os
 import subprocess
 from collections.abc import Sequence
 from pathlib import Path
@@ -7,6 +8,7 @@ from backend.app.core.config import Settings
 from backend.app.main import create_app
 from fastapi.testclient import TestClient
 from parser.tree_sitter_parser import SourceSymbol, TreeSitterParseError, TreeSitterParserService
+from tree_sitter import Node
 
 
 def write_file(path: Path, content: str) -> None:
@@ -348,6 +350,42 @@ def test_parser_rejects_unsupported_files(tmp_path: Path) -> None:
         service.parse_file(source_path)
 
 
+def test_parser_reuses_cached_summary_until_file_changes(tmp_path: Path) -> None:
+    source_path = tmp_path / "main.py"
+    write_file(source_path, "def one():\n    return 1\n")
+    service = CountingParserService()
+
+    first = service.parse_file(source_path)
+    second = service.parse_file(source_path)
+
+    assert first is second
+    assert service.symbol_extraction_count == 1
+
+    previous_mtime = source_path.stat().st_mtime_ns
+    write_file(source_path, "def two():\n    return 2\n")
+    os.utime(source_path, ns=(previous_mtime + 1_000_000, previous_mtime + 1_000_000))
+
+    updated = service.parse_file(source_path)
+
+    assert updated is not first
+    assert [symbol.name for symbol in updated.symbols] == ["two"]
+    assert service.symbol_extraction_count == 2
+
+
+def test_parser_cache_evicts_least_recently_used_file(tmp_path: Path) -> None:
+    first_path = tmp_path / "first.py"
+    second_path = tmp_path / "second.py"
+    write_file(first_path, "def first():\n    return 1\n")
+    write_file(second_path, "def second():\n    return 2\n")
+    service = CountingParserService(max_cache_entries=1)
+
+    service.parse_file(first_path)
+    service.parse_file(second_path)
+    service.parse_file(first_path)
+
+    assert service.symbol_extraction_count == 3
+
+
 def test_parse_file_api(tmp_path: Path) -> None:
     source_path = tmp_path / "main.py"
     write_file(source_path, "def hello():\n    return 'world'\n")
@@ -384,3 +422,13 @@ def test_parse_imported_repository_api(tmp_path: Path) -> None:
     assert parse_response.status_code == 200
     parsed = parse_response.json()["parsed_files"]
     assert [file["language"] for file in parsed] == ["TypeScript", "Python"]
+
+
+class CountingParserService(TreeSitterParserService):
+    def __init__(self, max_cache_entries: int = 1024) -> None:
+        super().__init__(max_cache_entries=max_cache_entries)
+        self.symbol_extraction_count = 0
+
+    def _extract_symbols(self, root: Node, source: bytes) -> list[SourceSymbol]:
+        self.symbol_extraction_count += 1
+        return super()._extract_symbols(root, source)
