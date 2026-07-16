@@ -2,16 +2,13 @@
 
 import { motion } from 'framer-motion';
 import { Activity, Braces, GitBranch, Network, Search, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
 
 import { ArchitecturePreview } from '@/components/architecture-preview';
 import { HealthBadge } from '@/components/health-badge';
+import { RepositoryExplorer } from '@/components/repository-explorer';
 import { Button } from '@/components/ui/button';
-
-const metrics = [
-  { label: 'Files Indexed', value: '0', detail: 'ready for repository import' },
-  { label: 'Graph Nodes', value: '0', detail: 'awaiting parser pipeline' },
-  { label: 'Health Score', value: '--', detail: 'computed after indexing' },
-];
+import type { RepositoryScanResult } from '@/lib/api';
 
 const workflow = [
   { icon: GitBranch, label: 'Import repository' },
@@ -21,6 +18,27 @@ const workflow = [
 ];
 
 export function Dashboard() {
+  const [scan, setScan] = useState<RepositoryScanResult | null>(null);
+  const metrics = [
+    {
+      label: 'Files Indexed',
+      value: String(scan?.files.length ?? 0),
+      detail: scan
+        ? `${scan.directories.length} directories scanned`
+        : 'ready for repository import',
+    },
+    {
+      label: 'Languages',
+      value: String(scan?.languages.length ?? 0),
+      detail: scan?.languages.join(', ') || 'detected after scan',
+    },
+    {
+      label: 'Source Files',
+      value: String(scan?.files.filter((file) => file.language !== null).length ?? 0),
+      detail: scan ? 'Tree-sitter supported candidates' : 'awaiting parser pipeline',
+    },
+  ];
+
   return (
     <main className="min-h-screen px-5 py-6 text-foreground sm:px-8 lg:px-10">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -53,6 +71,24 @@ export function Dashboard() {
               <p className="mt-2 text-sm text-muted-foreground">{metric.detail}</p>
             </motion.div>
           ))}
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Repository Explorer</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Scan a local path or load an imported repository to inspect files, folders, and
+                languages.
+              </p>
+            </div>
+            {scan ? (
+              <p className="max-w-full truncate text-sm text-muted-foreground">
+                {scan.repository_path}
+              </p>
+            ) : null}
+          </div>
+          <RepositoryExplorer onScanLoaded={setScan} />
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[1fr_420px]">

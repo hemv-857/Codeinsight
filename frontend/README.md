@@ -12,4 +12,6 @@ Next.js application code for Forge AI.
 
 - `NEXT_PUBLIC_API_BASE_URL` defaults to `http://localhost:8000`.
 
-The first screen is the dark-mode Forge AI dashboard with backend health, workflow status, and an architecture graph preview.
+The first screen is the dark-mode Forge AI dashboard with backend health, a repository explorer, workflow status, and an architecture graph preview.
+
+The repository explorer can scan a backend-accessible local repository path or load a previously imported repository by import ID.
