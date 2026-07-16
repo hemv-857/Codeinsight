@@ -1,10 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Activity, Braces, GitBranch, Network, Search, ShieldCheck } from 'lucide-react';
+import { Activity, Braces, GitBranch, Network, Search } from 'lucide-react';
 import { useState } from 'react';
 
-import { ArchitecturePreview } from '@/components/architecture-preview';
+import { DependencyGraphPanel } from '@/components/dependency-graph-panel';
 import { HealthBadge } from '@/components/health-badge';
 import { RepositoryExplorer } from '@/components/repository-explorer';
 import { Button } from '@/components/ui/button';
@@ -91,18 +91,18 @@ export function Dashboard() {
           <RepositoryExplorer onScanLoaded={setScan} />
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[1fr_420px]">
+        <section className="grid gap-6 xl:grid-cols-[1fr_320px]">
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold">Architecture Graph</h2>
+                <h2 className="text-xl font-semibold">Dependency Graph</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  The graph surface is ready for indexed repository data.
+                  Build the file-level dependency graph from parsed repository imports.
                 </p>
               </div>
-              <ShieldCheck className="h-5 w-5 text-accent" />
+              <Network className="h-5 w-5 text-accent" />
             </div>
-            <ArchitecturePreview />
+            <DependencyGraphPanel scan={scan} />
           </div>
 
           <aside className="rounded-lg border border-border bg-card p-5">

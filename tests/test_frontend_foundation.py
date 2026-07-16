@@ -26,6 +26,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/app/page.tsx",
         "frontend/app/globals.css",
         "frontend/components/dashboard.tsx",
+        "frontend/components/dependency-graph-panel.tsx",
         "frontend/components/providers.tsx",
         "frontend/components/repository-explorer.tsx",
         "frontend/tailwind.config.ts",
@@ -44,3 +45,14 @@ def test_frontend_repository_explorer_uses_scan_apis() -> None:
     assert "/api/repositories/imports/" in api_source
     assert "scanRepository" in explorer_source
     assert "scanImportedRepository" in explorer_source
+
+
+def test_frontend_dependency_graph_uses_dependency_graph_apis() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+    graph_source = (ROOT / "frontend" / "components" / "dependency-graph-panel.tsx").read_text()
+
+    assert "/api/repositories/dependency-graph" in api_source
+    assert "/dependency-graph" in api_source
+    assert "buildDependencyGraph" in graph_source
+    assert "buildImportedDependencyGraph" in graph_source
+    assert "ReactFlow" in graph_source
