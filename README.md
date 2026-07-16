@@ -32,14 +32,14 @@ Install dependencies:
 
 ```bash
 npm install
-python3 -m venv .venv
-.venv/bin/pip install -r requirements-dev.txt
+python3.13 -m venv .venv313
+.venv313/bin/pip install -r requirements-dev.txt
 ```
 
 Run the backend:
 
 ```bash
-.venv/bin/uvicorn backend.app.main:app --reload
+.venv313/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8002
 ```
 
 Run the dashboard:
@@ -48,7 +48,13 @@ Run the dashboard:
 npm run dev --workspace @forge-ai/frontend
 ```
 
-Open the dashboard at `http://localhost:3000` or the port printed by Next.js.
+For local demos, point the frontend at the backend:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8002 npm run dev --workspace @forge-ai/frontend -- --port 3002
+```
+
+Open the dashboard at `http://localhost:3002`.
 
 Run the full release verifier:
 
@@ -110,3 +116,7 @@ checking, coverage-gated Python tests, the Next.js production build, and Docker
 Compose config validation.
 
 Current quality target: Python coverage above 90%.
+
+Note: avoid Python 3.14 for local backend demos on macOS. Python 3.14.6 can
+segfault in worker threads while scanning repositories. Python 3.13 is stable
+for the current Forge AI backend.

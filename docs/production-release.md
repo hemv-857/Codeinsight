@@ -32,13 +32,13 @@ The gate includes:
 Start the backend:
 
 ```bash
-.venv/bin/uvicorn backend.app.main:app --reload
+.venv313/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8002
 ```
 
 Start the frontend:
 
 ```bash
-npm run dev --workspace @forge-ai/frontend
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8002 npm run dev --workspace @forge-ai/frontend -- --port 3002
 ```
 
 Optional full stack:
@@ -65,3 +65,5 @@ docker-compose up --build
 - Neo4j is optional at runtime; the backend falls back to NetworkX and writes
   durable graph snapshots to SQLite.
 - API errors return structured JSON envelopes with `X-Request-ID` correlation.
+- Use Python 3.13 for local macOS demos; Python 3.14.6 can segfault while
+  scanning repositories from AnyIO worker threads.

@@ -6,7 +6,10 @@ FastAPI application code for Forge AI.
 
 - Run tests: `make test`
 - Run verification: `make verify`
-- Start the API locally: `.venv/bin/uvicorn backend.app.main:app --reload`
+- Start the API locally: `.venv313/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8002`
+
+Use Python 3.13 for local backend demos on macOS. Python 3.14.6 can segfault in
+worker threads while scanning repositories.
 
 ## Environment
 
