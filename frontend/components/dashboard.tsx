@@ -9,6 +9,7 @@ import { HealthBadge } from '@/components/health-badge';
 import { KnowledgeGraphPanel } from '@/components/knowledge-graph-panel';
 import { RepositoryExplorer } from '@/components/repository-explorer';
 import { RepositorySearchPanel } from '@/components/repository-search-panel';
+import { TechnicalDebtPanel } from '@/components/technical-debt-panel';
 import { Button } from '@/components/ui/button';
 import type { RepositoryScanResult } from '@/lib/api';
 
@@ -108,6 +109,19 @@ export function Dashboard() {
 
         <section className="grid gap-6 xl:grid-cols-[1fr_320px]">
           <div className="space-y-6">
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Technical Debt</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Analyze maintainability risks from parsed code and dependency structure.
+                  </p>
+                </div>
+                <Activity className="h-5 w-5 text-accent" />
+              </div>
+              <TechnicalDebtPanel scan={scan} />
+            </section>
+
             <section className="space-y-4">
               <div className="flex items-center justify-between gap-4">
                 <div>

@@ -18,6 +18,8 @@ The repository explorer can scan a backend-accessible local repository path or l
 
 The repository search panel can index vectors for a repository path or import ID, then run hybrid retrieval with vector, keyword, and graph scores.
 
+The technical debt panel analyzes a repository path or import ID and displays maintainability findings, severity counts, and an architecture health score.
+
 The dependency graph panel can build file-level import graphs from a repository path or import ID and render internal dependencies, unresolved imports, and detected cycles.
 
 The knowledge graph panel can build and persist the repository architecture graph, then display graph size, relationship counts, and the selected persistence backend.

@@ -32,6 +32,7 @@ from backend.app.services.repository_qa import RepositoryQAService
 from backend.app.services.repository_scanner import RepositoryScannerService
 from backend.app.services.repository_summary import RepositorySummaryService
 from backend.app.services.retrieval import HybridRetrievalService
+from backend.app.services.technical_debt import TechnicalDebtService
 from backend.app.services.vector_store import VectorStoreService
 
 
@@ -203,6 +204,19 @@ def get_repository_summary_service(
         dependency_graph=dependency_graph,
         call_graph=call_graph,
         vector_repository=get_cached_vector_store_repository(str(settings.vector_database_path)),
+    )
+
+
+def get_technical_debt_service(
+    scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
+    parser: Annotated[TreeSitterParserService, Depends(get_tree_sitter_parser_service)],
+    dependency_graph: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
+) -> TechnicalDebtService:
+    """Provide technical debt analysis operations."""
+    return TechnicalDebtService(
+        scanner=scanner,
+        parser=parser,
+        dependency_graph=dependency_graph,
     )
 
 

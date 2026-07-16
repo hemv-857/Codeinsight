@@ -115,6 +115,37 @@ export interface SearchResult {
   stats: SearchStats;
 }
 
+export type DebtSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface TechnicalDebtFinding {
+  category: string;
+  severity: DebtSeverity;
+  path: string;
+  title: string;
+  description: string;
+  line: number | null;
+  end_line: number | null;
+  symbol_name: string | null;
+  evidence: string[];
+}
+
+export interface TechnicalDebtStats {
+  file_count: number;
+  parsed_file_count: number;
+  finding_count: number;
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  score: number;
+}
+
+export interface TechnicalDebtReport {
+  repository_path: string;
+  findings: TechnicalDebtFinding[];
+  stats: TechnicalDebtStats;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -263,6 +294,32 @@ export async function searchImportedRepository(
   }
 
   return response.json() as Promise<SearchResult>;
+}
+
+export async function analyzeTechnicalDebt(repositoryPath: string): Promise<TechnicalDebtReport> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/technical-debt`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repository_path: repositoryPath }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Technical debt analysis failed'));
+  }
+
+  return response.json() as Promise<TechnicalDebtReport>;
+}
+
+export async function analyzeImportedTechnicalDebt(importId: string): Promise<TechnicalDebtReport> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/repositories/imports/${importId}/technical-debt`,
+  );
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Imported technical debt analysis failed'));
+  }
+
+  return response.json() as Promise<TechnicalDebtReport>;
 }
 
 async function responseError(response: Response, fallback: string) {

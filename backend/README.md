@@ -63,6 +63,8 @@ Repository import endpoints:
 - `GET /api/repositories/imports/{import_id}/vector-store`
 - `POST /api/repositories/retrieve`
 - `POST /api/repositories/imports/{import_id}/retrieve`
+- `POST /api/repositories/technical-debt`
+- `GET /api/repositories/imports/{import_id}/technical-debt`
 - `POST /api/repositories/summary`
 - `GET /api/repositories/imports/{import_id}/summary`
 - `POST /api/repositories/architecture-explanation`
@@ -95,6 +97,9 @@ storage statistics instead of full vector payloads.
 Hybrid retrieval endpoints search stored vectors with semantic similarity, keyword
 overlap, and dependency-graph context. Run vector storage for the repository before
 calling retrieval.
+Technical debt endpoints analyze parsed source files and dependencies for
+maintainability risks such as large files, long symbols, broad types, high fan-out,
+parser errors, and dependency cycles.
 Repository summary endpoints generate grounded repository overviews from scanner,
 parser, dependency graph, call graph, and vector index metadata.
 Architecture explanation endpoints turn those grounded facts into component,
