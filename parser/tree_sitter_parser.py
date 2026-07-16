@@ -2,8 +2,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+import tree_sitter_c
+import tree_sitter_cpp
+import tree_sitter_go
+import tree_sitter_java
 import tree_sitter_javascript
 import tree_sitter_python
+import tree_sitter_rust
 import tree_sitter_typescript
 from tree_sitter import Language, Node, Parser
 
@@ -61,9 +66,20 @@ class LanguageDefinition:
 
 
 LANGUAGE_BY_EXTENSION = {
+    ".c": LanguageDefinition("C", tree_sitter_c.language),
+    ".cc": LanguageDefinition("C++", tree_sitter_cpp.language),
+    ".cpp": LanguageDefinition("C++", tree_sitter_cpp.language),
+    ".cxx": LanguageDefinition("C++", tree_sitter_cpp.language),
+    ".go": LanguageDefinition("Go", tree_sitter_go.language),
+    ".h": LanguageDefinition("C", tree_sitter_c.language),
+    ".hh": LanguageDefinition("C++", tree_sitter_cpp.language),
+    ".hpp": LanguageDefinition("C++", tree_sitter_cpp.language),
+    ".hxx": LanguageDefinition("C++", tree_sitter_cpp.language),
+    ".java": LanguageDefinition("Java", tree_sitter_java.language),
     ".js": LanguageDefinition("JavaScript", tree_sitter_javascript.language),
     ".jsx": LanguageDefinition("JavaScript", tree_sitter_javascript.language),
     ".py": LanguageDefinition("Python", tree_sitter_python.language),
+    ".rs": LanguageDefinition("Rust", tree_sitter_rust.language),
     ".ts": LanguageDefinition("TypeScript", tree_sitter_typescript.language_typescript),
     ".tsx": LanguageDefinition("TypeScript", tree_sitter_typescript.language_tsx),
 }
@@ -129,11 +145,24 @@ class TreeSitterParserService:
     ) -> None:
         is_exported = exported or node.type == "export_statement"
 
-        if node.type in {"import_statement", "import_from_statement"}:
+        if node.type in {
+            "import_declaration",
+            "import_from_statement",
+            "import_statement",
+            "preproc_include",
+            "use_declaration",
+        }:
             symbols.extend(self._extract_import_symbols(node, source))
             return
 
-        if node.type in {"class_definition", "class_declaration"}:
+        if node.type in {
+            "class_declaration",
+            "class_definition",
+            "class_specifier",
+            "struct_item",
+            "struct_specifier",
+            "type_spec",
+        }:
             name = self._field_text(node, source, "name")
             if name is None:
                 return
@@ -150,7 +179,7 @@ class TreeSitterParserService:
             self._walk_children(node, source, symbols, parent=name, exported=False)
             return
 
-        if node.type == "interface_declaration":
+        if node.type in {"interface_declaration", "trait_item"}:
             name = self._field_text(node, source, "name")
             if name is None:
                 return
@@ -167,8 +196,13 @@ class TreeSitterParserService:
             self._walk_children(node, source, symbols, parent=name, exported=False)
             return
 
-        if node.type in {"function_definition", "function_declaration"}:
-            name = self._field_text(node, source, "name")
+        if node.type == "impl_item":
+            parent_name = self._field_text(node, source, "type")
+            self._walk_children(node, source, symbols, parent=parent_name, exported=False)
+            return
+
+        if node.type in {"function_declaration", "function_definition", "function_item"}:
+            name = self._field_text(node, source, "name") or self._declarator_name(node, source)
             if name is None:
                 return
             kind = "method" if parent else "function"
@@ -178,7 +212,7 @@ class TreeSitterParserService:
             self._walk_children(node, source, symbols, parent=name, exported=False)
             return
 
-        if node.type == "method_definition":
+        if node.type in {"function_signature_item", "method_declaration", "method_definition"}:
             name = self._field_text(node, source, "name")
             if name is None:
                 return
@@ -188,8 +222,20 @@ class TreeSitterParserService:
             self._walk_children(node, source, symbols, parent=name, exported=False)
             return
 
-        if node.type in {"assignment", "variable_declarator"}:
-            name = self._field_text(node, source, "left") or self._field_text(node, source, "name")
+        if node.type in {
+            "assignment",
+            "declaration",
+            "field_declaration",
+            "let_declaration",
+            "short_var_declaration",
+            "variable_declarator",
+        }:
+            name = (
+                self._field_text(node, source, "left")
+                or self._field_text(node, source, "name")
+                or self._declarator_name(node, source)
+                or self._first_identifier_text(node, source)
+            )
             if name is not None and self._is_simple_identifier(name):
                 symbols.append(
                     self._symbol(
@@ -222,19 +268,36 @@ class TreeSitterParserService:
             name = self._field_text(node, source, "name")
             return [self._symbol(node, kind="import", name=name, source=module)] if name else []
 
+        if node.type == "preproc_include":
+            path = self._field_text(node, source, "path")
+            name = self._strip_include(path)
+            return [self._symbol(node, kind="import", name=name, source=path)] if name else []
+
         source_name = self._strip_quotes(self._field_text(node, source, "source"))
+        if source_name is None:
+            path = self._first_field_text(node, source, "path")
+            source_name = self._strip_quotes(path) or path
+        if source_name is None:
+            source_name = self._first_child_text(node, source, "scoped_identifier")
         import_name = self._field_text(node, source, "name")
         if import_name is None:
             clause = self._first_child_text(node, source, "import_clause")
-            import_name = clause or source_name
+            import_name = clause or self._last_identifier_text(node, source) or source_name
         if import_name is None:
             return []
         return [self._symbol(node, kind="import", name=import_name, source=source_name)]
 
     def _extract_inheritance(self, node: Node, source: bytes) -> tuple[str, ...]:
         inherited: list[str] = []
-        for child_type in ("argument_list", "class_heritage", "extends_type_clause"):
-            child = self._first_child(node, child_type)
+        for child_type in (
+            "argument_list",
+            "base_class_clause",
+            "class_heritage",
+            "extends_type_clause",
+            "superclass",
+            "interfaces",
+        ):
+            child = node.child_by_field_name(child_type) or self._first_child(node, child_type)
             if child is not None:
                 inherited.extend(self._identifier_texts(child, source))
         return tuple(dict.fromkeys(inherited))
@@ -279,11 +342,46 @@ class TreeSitterParserService:
         child = self._first_child(node, child_type)
         return self._node_text(child, source) if child is not None else None
 
+    def _first_field_text(self, node: Node, source: bytes, field_name: str) -> str | None:
+        child = node.child_by_field_name(field_name)
+        if child is not None:
+            return self._node_text(child, source)
+        for named_child in node.named_children:
+            text = self._first_field_text(named_child, source, field_name)
+            if text is not None:
+                return text
+        return None
+
     def _first_child(self, node: Node, child_type: str) -> Node | None:
         for child in node.named_children:
             if child.type == child_type:
                 return child
         return None
+
+    def _declarator_name(self, node: Node, source: bytes) -> str | None:
+        declarator = node.child_by_field_name("declarator")
+        if declarator is None:
+            return None
+        return self._first_identifier_text(declarator, source)
+
+    def _first_identifier_text(self, node: Node, source: bytes) -> str | None:
+        if node.type in {
+            "field_identifier",
+            "identifier",
+            "package_identifier",
+            "property_identifier",
+            "type_identifier",
+        }:
+            return self._node_text(node, source)
+        for child in node.named_children:
+            text = self._first_identifier_text(child, source)
+            if text is not None:
+                return text
+        return None
+
+    def _last_identifier_text(self, node: Node, source: bytes) -> str | None:
+        identifiers = self._identifier_texts(node, source)
+        return identifiers[-1] if identifiers else None
 
     def _node_text(self, node: Node, source: bytes) -> str:
         return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
@@ -292,6 +390,11 @@ class TreeSitterParserService:
         if value is None:
             return None
         return value.strip("\"'")
+
+    def _strip_include(self, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip('<>"')
 
     def _is_simple_identifier(self, value: str) -> bool:
         return value.replace("_", "").isalnum()

@@ -37,3 +37,4 @@ Repository import endpoints:
 - `POST /api/repositories/parse-import/{import_id}`
 
 Parse responses include compact AST metadata and extracted source symbols.
+Supported parser languages are C, C++, Go, Java, JavaScript, Python, Rust, and TypeScript.

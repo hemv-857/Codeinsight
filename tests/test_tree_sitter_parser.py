@@ -46,10 +46,15 @@ def symbol_names(result_symbols: Sequence[SourceSymbol], kind: str) -> list[str]
     return [symbol.name for symbol in result_symbols if symbol.kind == kind]
 
 
-def test_parser_supports_python_javascript_typescript_and_tsx(tmp_path: Path) -> None:
+def test_parser_supports_all_configured_languages(tmp_path: Path) -> None:
     files = {
+        "main.c": ("#include <stdio.h>\nint main(void) { return 0; }\n", "C", "translation_unit"),
+        "main.cpp": ("#include <vector>\nint main() { return 0; }\n", "C++", "translation_unit"),
+        "main.go": ("package main\nfunc main() {}\n", "Go", "source_file"),
+        "Main.java": ("class Main {}\n", "Java", "program"),
         "main.py": ("print('hello')\n", "Python", "module"),
         "app.js": ("const value = 1;\n", "JavaScript", "program"),
+        "main.rs": ("fn main() {}\n", "Rust", "source_file"),
         "app.ts": ("const value: number = 1;\n", "TypeScript", "program"),
         "app.tsx": ("const element = <div />;\n", "TypeScript", "program"),
     }
@@ -66,6 +71,168 @@ def test_parser_supports_python_javascript_typescript_and_tsx(tmp_path: Path) ->
         assert result.has_error is False
         assert result.end_byte == len(content.encode())
         assert result.named_child_count > 0
+
+
+def test_parser_extracts_c_and_cpp_symbols(tmp_path: Path) -> None:
+    files = {
+        "main.c": (
+            "\n".join(
+                [
+                    "#include <stdio.h>",
+                    "int count = 0;",
+                    "struct User { int id; };",
+                    "int add(int a, int b) {",
+                    "  int total = a + b;",
+                    "  return total;",
+                    "}",
+                    "",
+                ]
+            ),
+            "C",
+            ["stdio.h"],
+            ["User"],
+            ["add"],
+            ["count", "id", "total"],
+            (),
+        ),
+        "main.cpp": (
+            "\n".join(
+                [
+                    "#include <vector>",
+                    "class Service : public Base {",
+                    " public:",
+                    "  int run(int x) {",
+                    "    int value = x;",
+                    "    return value;",
+                    "  }",
+                    "};",
+                    "int make() {",
+                    "  auto item = Service();",
+                    "  return 1;",
+                    "}",
+                    "",
+                ]
+            ),
+            "C++",
+            ["vector"],
+            ["Service"],
+            ["make"],
+            ["value", "item"],
+            ("Base",),
+        ),
+    }
+    service = TreeSitterParserService()
+
+    for filename, (
+        content,
+        language,
+        imports,
+        classes,
+        functions,
+        variables,
+        inherits,
+    ) in files.items():
+        source_path = tmp_path / filename
+        write_file(source_path, content)
+
+        result = service.parse_file(source_path)
+
+        assert result.language == language
+        assert symbol_names(result.symbols, "import") == imports
+        assert symbol_names(result.symbols, "class") == classes
+        assert symbol_names(result.symbols, "function") == functions
+        assert symbol_names(result.symbols, "variable") == variables
+        parsed_class = next(symbol for symbol in result.symbols if symbol.name == classes[0])
+        assert parsed_class.inherits == inherits
+
+
+def test_parser_extracts_java_go_and_rust_symbols(tmp_path: Path) -> None:
+    files = {
+        "Main.java": (
+            "\n".join(
+                [
+                    "import java.util.List;",
+                    "interface Named {}",
+                    "class UserService extends BaseService implements Named {",
+                    "  private int count;",
+                    "  int load(int id) {",
+                    "    int value = id;",
+                    "    return value;",
+                    "  }",
+                    "}",
+                    "",
+                ]
+            ),
+            "Java",
+            ["List"],
+            ["UserService"],
+            ["Named"],
+            [],
+            ["load"],
+            ["count", "value"],
+            ("BaseService", "Named"),
+        ),
+        "main.go": (
+            "\n".join(
+                [
+                    "package main",
+                    'import "fmt"',
+                    "type User struct { ID int }",
+                    'func (u User) Name() string { value := "x"; return value }',
+                    "func main() { count := 1; fmt.Println(count) }",
+                    "",
+                ]
+            ),
+            "Go",
+            ["fmt"],
+            ["User"],
+            [],
+            ["main"],
+            ["Name"],
+            ["ID", "value", "count"],
+            (),
+        ),
+        "main.rs": (
+            "\n".join(
+                [
+                    "use std::fmt;",
+                    "struct User { id: i32 }",
+                    "trait Named { fn name(&self) -> String; }",
+                    "impl User { fn load(&self) -> i32 { let value = self.id; value } }",
+                    "fn make_user() -> User { let user = User { id: 1 }; user }",
+                    "",
+                ]
+            ),
+            "Rust",
+            ["fmt"],
+            ["User"],
+            ["Named"],
+            ["make_user"],
+            ["name", "load"],
+            ["id", "value", "user"],
+            (),
+        ),
+    }
+    service = TreeSitterParserService()
+
+    for (
+        filename,
+        (content, language, imports, classes, interfaces, functions, methods, variables, inherits),
+    ) in files.items():
+        source_path = tmp_path / filename
+        write_file(source_path, content)
+
+        result = service.parse_file(source_path)
+
+        assert result.language == language
+        assert symbol_names(result.symbols, "import") == imports
+        assert symbol_names(result.symbols, "class") == classes
+        assert symbol_names(result.symbols, "interface") == interfaces
+        assert symbol_names(result.symbols, "function") == functions
+        assert symbol_names(result.symbols, "method") == methods
+        assert symbol_names(result.symbols, "variable") == variables
+        parsed_class = next(symbol for symbol in result.symbols if symbol.name == classes[0])
+        assert parsed_class.inherits == inherits
 
 
 def test_parser_extracts_python_symbols(tmp_path: Path) -> None:
