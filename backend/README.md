@@ -16,6 +16,10 @@ Configuration is loaded from environment variables prefixed with `FORGE_AI_`.
 - `FORGE_AI_ENVIRONMENT`
 - `FORGE_AI_LOG_LEVEL`
 - `FORGE_AI_METADATA_DATABASE_PATH`
+- `FORGE_AI_NEO4J_DATABASE`
+- `FORGE_AI_NEO4J_PASSWORD`
+- `FORGE_AI_NEO4J_URI`
+- `FORGE_AI_NEO4J_USERNAME`
 - `FORGE_AI_REPOSITORY_CLONE_TIMEOUT_SECONDS`
 - `FORGE_AI_REPOSITORY_STORAGE_PATH`
 - `FORGE_AI_REPOSITORY_ZIP_MAX_BYTES`
@@ -39,6 +43,8 @@ Repository import endpoints:
 - `GET /api/repositories/imports/{import_id}/dependency-graph`
 - `POST /api/repositories/call-graph`
 - `GET /api/repositories/imports/{import_id}/call-graph`
+- `POST /api/repositories/knowledge-graph`
+- `GET /api/repositories/imports/{import_id}/knowledge-graph`
 
 Parse responses include compact AST metadata and extracted source symbols.
 Supported parser languages are C, C++, Go, Java, JavaScript, Python, Rust, and TypeScript.
@@ -46,3 +52,5 @@ Dependency graph responses include file nodes, dependency edges, external import
 unresolved imports, circular dependencies, and graph statistics.
 Call graph responses include callable nodes, call edges, unresolved calls, recursive
 calls, and graph statistics.
+Knowledge graph endpoints build repository architecture nodes and relationships,
+then replace the repository graph in Neo4j.

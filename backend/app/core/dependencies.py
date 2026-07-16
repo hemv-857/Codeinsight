@@ -5,6 +5,8 @@ from typing import Annotated
 from fastapi import Depends
 from graph.call_graph import CallGraphService
 from graph.dependency_graph import DependencyGraphService
+from graph.knowledge_graph import KnowledgeGraphService
+from graph.neo4j_repository import Neo4jKnowledgeGraphRepository
 from parser.tree_sitter_parser import TreeSitterParserService
 
 from backend.app.core.config import Settings, get_cached_settings
@@ -87,3 +89,41 @@ def get_call_graph_service(
 ) -> CallGraphService:
     """Provide call graph construction operations to API routes."""
     return CallGraphService(scanner=scanner, parser=parser)
+
+
+@lru_cache(maxsize=16)
+def get_cached_neo4j_repository(
+    uri: str,
+    username: str,
+    password: str,
+    database: str,
+) -> Neo4jKnowledgeGraphRepository:
+    """Return a Neo4j-backed knowledge graph repository."""
+    return Neo4jKnowledgeGraphRepository.connect(
+        uri=uri,
+        username=username,
+        password=password,
+        database=database,
+    )
+
+
+def get_knowledge_graph_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
+    parser: Annotated[TreeSitterParserService, Depends(get_tree_sitter_parser_service)],
+    dependency_graph: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
+    call_graph: Annotated[CallGraphService, Depends(get_call_graph_service)],
+) -> KnowledgeGraphService:
+    """Provide knowledge graph construction and persistence operations."""
+    return KnowledgeGraphService(
+        scanner=scanner,
+        parser=parser,
+        dependency_graph=dependency_graph,
+        call_graph=call_graph,
+        repository=get_cached_neo4j_repository(
+            uri=settings.neo4j_uri,
+            username=settings.neo4j_username,
+            password=settings.neo4j_password,
+            database=settings.neo4j_database,
+        ),
+    )

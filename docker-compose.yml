@@ -8,6 +8,10 @@ services:
     environment:
       FORGE_AI_ENVIRONMENT: production
       FORGE_AI_LOG_LEVEL: INFO
+      FORGE_AI_NEO4J_DATABASE: neo4j
+      FORGE_AI_NEO4J_PASSWORD: forge-ai-dev
+      FORGE_AI_NEO4J_URI: bolt://neo4j:7687
+      FORGE_AI_NEO4J_USERNAME: neo4j
     ports:
       - '8000:8000'
     volumes:

@@ -4,6 +4,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from graph.call_graph import CallGraph, CallGraphError, CallGraphService
 from graph.dependency_graph import DependencyGraph, DependencyGraphError, DependencyGraphService
+from graph.knowledge_graph import (
+    KnowledgeGraph,
+    KnowledgeGraphError,
+    KnowledgeGraphPersistenceResult,
+    KnowledgeGraphService,
+)
 from parser.tree_sitter_parser import (
     ParseTreeSummary,
     TreeSitterParseError,
@@ -13,6 +19,7 @@ from parser.tree_sitter_parser import (
 from backend.app.core.dependencies import (
     get_call_graph_service,
     get_dependency_graph_service,
+    get_knowledge_graph_service,
     get_metadata_service,
     get_repository_import_service,
     get_repository_scanner_service,
@@ -31,6 +38,12 @@ from backend.app.schemas.dependency_graph import (
     DependencyGraphResponse,
     DependencyGraphStatsResponse,
     DependencyNodeResponse,
+)
+from backend.app.schemas.knowledge_graph import (
+    KnowledgeGraphPersistenceResponse,
+    KnowledgeGraphRequest,
+    KnowledgeGraphResponse,
+    KnowledgeGraphStatsResponse,
 )
 from backend.app.schemas.metadata import MetadataPersistRequest, StoredRepositoryMetadata
 from backend.app.schemas.parse import (
@@ -84,6 +97,29 @@ def to_call_graph_response(graph: CallGraph) -> CallGraphResponse:
             resolved_call_count=graph.stats.resolved_call_count,
             unresolved_call_count=graph.stats.unresolved_call_count,
             recursive_call_count=graph.stats.recursive_call_count,
+        ),
+    )
+
+
+def to_knowledge_graph_response(
+    graph: KnowledgeGraph,
+    persistence: KnowledgeGraphPersistenceResult,
+) -> KnowledgeGraphResponse:
+    """Convert knowledge-graph domain output into an API response."""
+    return KnowledgeGraphResponse(
+        repository_path=graph.repository_path,
+        stats=KnowledgeGraphStatsResponse(
+            node_count=graph.stats.node_count,
+            edge_count=graph.stats.edge_count,
+            file_count=graph.stats.file_count,
+            symbol_count=graph.stats.symbol_count,
+            dependency_edge_count=graph.stats.dependency_edge_count,
+            call_edge_count=graph.stats.call_edge_count,
+        ),
+        persistence=KnowledgeGraphPersistenceResponse(
+            persisted=persistence.persisted,
+            node_count=persistence.node_count,
+            edge_count=persistence.edge_count,
         ),
     )
 
@@ -362,6 +398,38 @@ def build_imported_repository_call_graph(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except (RepositoryScanError, CallGraphError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/knowledge-graph", response_model=KnowledgeGraphResponse)
+def build_knowledge_graph(
+    request: KnowledgeGraphRequest,
+    service: Annotated[KnowledgeGraphService, Depends(get_knowledge_graph_service)],
+) -> KnowledgeGraphResponse:
+    """Build and persist a repository knowledge graph in Neo4j."""
+    try:
+        graph, persistence = service.build_and_persist(request.repository_path)
+        return to_knowledge_graph_response(graph, persistence)
+    except (RepositoryScanError, KnowledgeGraphError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get("/imports/{import_id}/knowledge-graph", response_model=KnowledgeGraphResponse)
+def build_imported_repository_knowledge_graph(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[KnowledgeGraphService, Depends(get_knowledge_graph_service)],
+) -> KnowledgeGraphResponse:
+    """Build and persist a knowledge graph for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise KnowledgeGraphError("Repository import has no local path to graph.")
+        graph, persistence = service.build_and_persist(Path(imported_repository.repository_path))
+        return to_knowledge_graph_response(graph, persistence)
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (RepositoryScanError, KnowledgeGraphError) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 
