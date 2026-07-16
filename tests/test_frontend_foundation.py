@@ -26,6 +26,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/app/page.tsx",
         "frontend/app/globals.css",
         "frontend/components/architecture-violations-panel.tsx",
+        "frontend/components/bug-impact-panel.tsx",
         "frontend/components/dashboard.tsx",
         "frontend/components/circular-dependencies-panel.tsx",
         "frontend/components/dead-code-panel.tsx",
@@ -132,6 +133,16 @@ def test_frontend_stack_trace_parser_uses_stack_trace_api() -> None:
     assert "/api/repositories/stack-trace/parse" in api_source
     assert "parseStackTrace" in parser_source
     assert "StackTracePanel" in parser_source
+
+
+def test_frontend_bug_impact_uses_bug_impact_apis() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+    impact_source = (ROOT / "frontend" / "components" / "bug-impact-panel.tsx").read_text()
+
+    assert "/api/repositories/bug-impact" in api_source
+    assert "/bug-impact" in api_source
+    assert "predictBugImpact" in impact_source
+    assert "predictImportedBugImpact" in impact_source
 
 
 def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:

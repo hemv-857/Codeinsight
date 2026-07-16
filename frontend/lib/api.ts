@@ -257,6 +257,40 @@ export interface ParsedStackTrace {
   stats: StackTraceStats;
 }
 
+export interface RootCauseCandidate {
+  path: string;
+  line: number | null;
+  function: string | null;
+  score: number;
+  evidence: string[];
+}
+
+export interface ImpactedFile {
+  path: string;
+  reason: string;
+  score: number;
+}
+
+export interface BugImpactStats {
+  frame_count: number;
+  matched_frame_count: number;
+  impacted_file_count: number;
+  dependency_edge_count: number;
+  risk_score: number;
+  confidence: number;
+}
+
+export interface BugImpactPrediction {
+  repository_path: string;
+  error_type: string | null;
+  message: string | null;
+  root_cause: RootCauseCandidate | null;
+  impacted_files: ImpactedFile[];
+  recommendations: string[];
+  parsed_trace: ParsedStackTrace;
+  stats: BugImpactStats;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -419,6 +453,53 @@ export async function parseStackTrace(stackTrace: string): Promise<ParsedStackTr
   }
 
   return response.json() as Promise<ParsedStackTrace>;
+}
+
+export async function predictBugImpact(
+  repositoryPath: string,
+  stackTrace: string,
+  changedFiles: string[],
+  error?: string,
+): Promise<BugImpactPrediction> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/bug-impact`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      repository_path: repositoryPath,
+      stack_trace: stackTrace,
+      changed_files: changedFiles,
+      error: error || null,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Bug impact prediction failed'));
+  }
+
+  return response.json() as Promise<BugImpactPrediction>;
+}
+
+export async function predictImportedBugImpact(
+  importId: string,
+  stackTrace: string,
+  changedFiles: string[],
+  error?: string,
+): Promise<BugImpactPrediction> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/imports/${importId}/bug-impact`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      stack_trace: stackTrace,
+      changed_files: changedFiles,
+      error: error || null,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Imported bug impact prediction failed'));
+  }
+
+  return response.json() as Promise<BugImpactPrediction>;
 }
 
 export async function buildKnowledgeGraph(repositoryPath: string): Promise<KnowledgeGraphResult> {

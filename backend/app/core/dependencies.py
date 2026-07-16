@@ -19,6 +19,7 @@ from backend.app.repositories.metadata import MetadataRepository
 from backend.app.repositories.vector_store import VectorStoreRepository
 from backend.app.services.architecture_explanation import ArchitectureExplanationService
 from backend.app.services.architecture_violations import ArchitectureViolationService
+from backend.app.services.bug_impact import BugImpactService
 from backend.app.services.circular_dependencies import CircularDependencyService
 from backend.app.services.conversation_memory import ConversationMemoryService
 from backend.app.services.dead_code import DeadCodeService
@@ -250,6 +251,19 @@ def get_architecture_violation_service(
 def get_stack_trace_parser_service() -> StackTraceParserService:
     """Provide stack trace parsing operations."""
     return StackTraceParserService()
+
+
+def get_bug_impact_service(
+    scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
+    dependency_graph: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
+    stack_trace_parser: Annotated[StackTraceParserService, Depends(get_stack_trace_parser_service)],
+) -> BugImpactService:
+    """Provide bug impact prediction operations."""
+    return BugImpactService(
+        scanner=scanner,
+        dependency_graph=dependency_graph,
+        stack_trace_parser=stack_trace_parser,
+    )
 
 
 def get_architecture_explanation_service(

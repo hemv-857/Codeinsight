@@ -22,6 +22,7 @@ from parser.tree_sitter_parser import (
 from backend.app.core.dependencies import (
     get_architecture_explanation_service,
     get_architecture_violation_service,
+    get_bug_impact_service,
     get_call_graph_service,
     get_circular_dependency_service,
     get_conversation_memory_service,
@@ -53,6 +54,14 @@ from backend.app.schemas.architecture_violations import (
     ArchitectureViolationResponse,
     ArchitectureViolationResponseItem,
     ArchitectureViolationStatsResponse,
+)
+from backend.app.schemas.bug_impact import (
+    BugImpactRequest,
+    BugImpactResponse,
+    BugImpactStatsResponse,
+    ImpactedFileResponse,
+    ImportedBugImpactRequest,
+    RootCauseCandidateResponse,
 )
 from backend.app.schemas.call_graph import (
     CallGraphEdgeResponse,
@@ -158,6 +167,11 @@ from backend.app.services.architecture_violations import (
     ArchitectureViolationError,
     ArchitectureViolationReport,
     ArchitectureViolationService,
+)
+from backend.app.services.bug_impact import (
+    BugImpactError,
+    BugImpactPrediction,
+    BugImpactService,
 )
 from backend.app.services.circular_dependencies import (
     CircularDependencyError,
@@ -525,6 +539,40 @@ def to_stack_trace_response(result: StackTrace) -> StackTraceParseResponse:
             frame_count=result.stats.frame_count,
             language=result.stats.language,
             file_count=result.stats.file_count,
+        ),
+    )
+
+
+def to_bug_impact_response(result: BugImpactPrediction) -> BugImpactResponse:
+    """Convert bug impact prediction output into an API response."""
+    return BugImpactResponse(
+        repository_path=result.repository_path,
+        error_type=result.error_type,
+        message=result.message,
+        root_cause=(
+            RootCauseCandidateResponse(
+                path=result.root_cause.path,
+                line=result.root_cause.line,
+                function=result.root_cause.function,
+                score=result.root_cause.score,
+                evidence=list(result.root_cause.evidence),
+            )
+            if result.root_cause is not None
+            else None
+        ),
+        impacted_files=[
+            ImpactedFileResponse(path=item.path, reason=item.reason, score=item.score)
+            for item in result.impacted_files
+        ],
+        recommendations=list(result.recommendations),
+        parsed_trace=to_stack_trace_response(result.parsed_trace),
+        stats=BugImpactStatsResponse(
+            frame_count=result.stats.frame_count,
+            matched_frame_count=result.stats.matched_frame_count,
+            impacted_file_count=result.stats.impacted_file_count,
+            dependency_edge_count=result.stats.dependency_edge_count,
+            risk_score=result.stats.risk_score,
+            confidence=result.stats.confidence,
         ),
     )
 
@@ -1125,6 +1173,25 @@ def parse_stack_trace(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 
+@router.post("/bug-impact", response_model=BugImpactResponse)
+def predict_repository_bug_impact(
+    request: BugImpactRequest,
+    service: Annotated[BugImpactService, Depends(get_bug_impact_service)],
+) -> BugImpactResponse:
+    """Predict likely bug impact for a repository path."""
+    try:
+        return to_bug_impact_response(
+            service.predict(
+                repository_path=request.repository_path,
+                stack_trace=request.stack_trace,
+                changed_files=tuple(request.changed_files),
+                error=request.error,
+            )
+        )
+    except BugImpactError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
 @router.get("/imports/{import_id}/technical-debt", response_model=TechnicalDebtResponse)
 def analyze_imported_repository_technical_debt(
     import_id: str,
@@ -1206,6 +1273,32 @@ def detect_imported_repository_architecture_violations(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except ArchitectureViolationError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/imports/{import_id}/bug-impact", response_model=BugImpactResponse)
+def predict_imported_repository_bug_impact(
+    import_id: str,
+    request: ImportedBugImpactRequest,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[BugImpactService, Depends(get_bug_impact_service)],
+) -> BugImpactResponse:
+    """Predict likely bug impact for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise BugImpactError("Repository import has no local path to analyze.")
+        return to_bug_impact_response(
+            service.predict(
+                repository_path=Path(imported_repository.repository_path),
+                stack_trace=request.stack_trace,
+                changed_files=tuple(request.changed_files),
+                error=request.error,
+            )
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except BugImpactError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

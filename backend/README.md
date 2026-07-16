@@ -72,6 +72,8 @@ Repository import endpoints:
 - `POST /api/repositories/architecture-violations`
 - `GET /api/repositories/imports/{import_id}/architecture-violations`
 - `POST /api/repositories/stack-trace/parse`
+- `POST /api/repositories/bug-impact`
+- `POST /api/repositories/imports/{import_id}/bug-impact`
 - `POST /api/repositories/summary`
 - `GET /api/repositories/imports/{import_id}/summary`
 - `POST /api/repositories/architecture-explanation`
@@ -117,6 +119,9 @@ route/controller imports that skip the service layer.
 Stack trace parsing extracts normalized frames, files, functions, line numbers,
 language, error type, and message from common Python, JavaScript, Java, and Go
 trace formats.
+Bug impact endpoints combine parsed stack traces, changed files, and dependency
+graph evidence to predict likely root cause, impacted files, confidence,
+recommendations, and a provisional risk score.
 Repository summary endpoints generate grounded repository overviews from scanner,
 parser, dependency graph, call graph, and vector index metadata.
 Architecture explanation endpoints turn those grounded facts into component,

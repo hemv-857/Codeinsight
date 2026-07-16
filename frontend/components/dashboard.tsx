@@ -5,6 +5,7 @@ import { Activity, Braces, GitBranch, Network, Search } from 'lucide-react';
 import { useState } from 'react';
 
 import { ArchitectureViolationsPanel } from '@/components/architecture-violations-panel';
+import { BugImpactPanel } from '@/components/bug-impact-panel';
 import { CircularDependenciesPanel } from '@/components/circular-dependencies-panel';
 import { DeadCodePanel } from '@/components/dead-code-panel';
 import { DependencyGraphPanel } from '@/components/dependency-graph-panel';
@@ -176,6 +177,19 @@ export function Dashboard() {
                 <Activity className="h-5 w-5 text-accent" />
               </div>
               <StackTracePanel />
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Bug Impact</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Predict likely root cause and affected files from stack traces and imports.
+                  </p>
+                </div>
+                <Activity className="h-5 w-5 text-accent" />
+              </div>
+              <BugImpactPanel scan={scan} />
             </section>
 
             <section className="space-y-4">

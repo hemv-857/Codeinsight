@@ -28,6 +28,8 @@ The architecture violations panel flags common layer-boundary import issues with
 
 The stack trace parser panel extracts files, functions, line numbers, language, and error metadata from pasted traces.
 
+The bug impact panel predicts likely root cause and affected files from stack traces, changed files, and dependency graph evidence.
+
 The dependency graph panel can build file-level import graphs from a repository path or import ID and render internal dependencies, unresolved imports, and detected cycles.
 
 The knowledge graph panel can build and persist the repository architecture graph, then display graph size, relationship counts, and the selected persistence backend.
