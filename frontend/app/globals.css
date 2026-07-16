@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --background: 220 21% 7%;
+  --foreground: 210 30% 96%;
+  --card: 222 18% 10%;
+  --card-foreground: 210 30% 96%;
+  --muted: 222 14% 15%;
+  --muted-foreground: 216 13% 67%;
+  --accent: 174 64% 42%;
+  --accent-foreground: 180 100% 97%;
+  --border: 220 13% 22%;
+  --primary: 38 92% 56%;
+  --primary-foreground: 224 28% 8%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, hsl(174 64% 13% / 48%), transparent 32rem),
+    linear-gradient(135deg, hsl(var(--background)), hsl(224 24% 9%));
+  color: hsl(var(--foreground));
+}
+
+.react-flow__attribution {
+  display: none;
+}
