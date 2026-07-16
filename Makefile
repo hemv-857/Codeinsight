@@ -3,12 +3,15 @@ BLACK := .venv/bin/black
 RUFF := .venv/bin/ruff
 MYPY := .venv/bin/mypy
 
-.PHONY: build docker-validate format format-check frontend-build install-python-tools lint test typecheck verify
+.PHONY: build docker-build docker-validate format format-check frontend-build install-python-tools lint test typecheck verify
 
 build: typecheck frontend-build docker-validate
 
 docker-validate:
 	docker-compose config
+
+docker-build:
+	docker-compose build backend frontend worker
 
 frontend-build:
 	npm run build --workspace @forge-ai/frontend
