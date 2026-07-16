@@ -17,6 +17,7 @@ from parser.tree_sitter_parser import (
 )
 
 from backend.app.core.dependencies import (
+    get_architecture_explanation_service,
     get_call_graph_service,
     get_dependency_graph_service,
     get_embedding_service,
@@ -29,6 +30,12 @@ from backend.app.core.dependencies import (
     get_repository_summary_service,
     get_tree_sitter_parser_service,
     get_vector_store_service,
+)
+from backend.app.schemas.architecture_explanation import (
+    ArchitectureComponentResponse,
+    ArchitectureExplanationRequest,
+    ArchitectureExplanationResponse,
+    ImportedArchitectureExplanationRequest,
 )
 from backend.app.schemas.call_graph import (
     CallGraphEdgeResponse,
@@ -90,6 +97,11 @@ from backend.app.schemas.retrieval import (
     ImportedHybridRetrievalRequest,
 )
 from backend.app.schemas.vector_store import VectorStoreRequest, VectorStoreResponse
+from backend.app.services.architecture_explanation import (
+    ArchitectureExplanation,
+    ArchitectureExplanationError,
+    ArchitectureExplanationService,
+)
 from backend.app.services.embedding import EmbeddingError, EmbeddingService, RepositoryEmbeddings
 from backend.app.services.metadata import MetadataService
 from backend.app.services.repository_chunker import (
@@ -108,6 +120,31 @@ from backend.app.services.retrieval import HybridRetrieval, HybridRetrievalServi
 from backend.app.services.vector_store import VectorStoreResult, VectorStoreService
 
 router = APIRouter(prefix="/api/repositories", tags=["repositories"])
+
+
+def to_architecture_explanation_response(
+    result: ArchitectureExplanation,
+) -> ArchitectureExplanationResponse:
+    """Convert architecture explanation output into an API response."""
+    return ArchitectureExplanationResponse(
+        repository_path=result.repository_path,
+        focus=result.focus,
+        overview=result.overview,
+        components=[
+            ArchitectureComponentResponse(
+                name=component.name,
+                path=component.path,
+                role=component.role,
+                evidence=list(component.evidence),
+            )
+            for component in result.components
+        ],
+        dependency_flow=list(result.dependency_flow),
+        call_flow=list(result.call_flow),
+        observations=list(result.observations),
+        evidence_paths=list(result.evidence_paths),
+        confidence=result.confidence,
+    )
 
 
 def to_repository_embeddings_response(
@@ -756,6 +793,51 @@ def summarize_imported_repository(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except (RepositoryScanError, RepositorySummaryError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/architecture-explanation", response_model=ArchitectureExplanationResponse)
+def explain_repository_architecture(
+    request: ArchitectureExplanationRequest,
+    service: Annotated[
+        ArchitectureExplanationService, Depends(get_architecture_explanation_service)
+    ],
+) -> ArchitectureExplanationResponse:
+    """Explain repository architecture using grounded repository evidence."""
+    try:
+        return to_architecture_explanation_response(
+            service.explain(repository_path=request.repository_path, focus=request.focus)
+        )
+    except (RepositoryScanError, RepositorySummaryError, ArchitectureExplanationError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post(
+    "/imports/{import_id}/architecture-explanation",
+    response_model=ArchitectureExplanationResponse,
+)
+def explain_imported_repository_architecture(
+    import_id: str,
+    request: ImportedArchitectureExplanationRequest,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[
+        ArchitectureExplanationService, Depends(get_architecture_explanation_service)
+    ],
+) -> ArchitectureExplanationResponse:
+    """Explain architecture for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise ArchitectureExplanationError("Repository import has no local path to explain.")
+        return to_architecture_explanation_response(
+            service.explain(
+                repository_path=Path(imported_repository.repository_path),
+                focus=request.focus,
+            )
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (RepositoryScanError, RepositorySummaryError, ArchitectureExplanationError) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

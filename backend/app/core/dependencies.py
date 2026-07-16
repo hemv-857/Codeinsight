@@ -16,6 +16,7 @@ from parser.tree_sitter_parser import TreeSitterParserService
 from backend.app.core.config import Settings, get_cached_settings
 from backend.app.repositories.metadata import MetadataRepository
 from backend.app.repositories.vector_store import VectorStoreRepository
+from backend.app.services.architecture_explanation import ArchitectureExplanationService
 from backend.app.services.embedding import (
     EmbeddingClient,
     EmbeddingService,
@@ -200,6 +201,13 @@ def get_repository_summary_service(
         call_graph=call_graph,
         vector_repository=get_cached_vector_store_repository(str(settings.vector_database_path)),
     )
+
+
+def get_architecture_explanation_service(
+    summary_service: Annotated[RepositorySummaryService, Depends(get_repository_summary_service)],
+) -> ArchitectureExplanationService:
+    """Provide architecture explanation operations."""
+    return ArchitectureExplanationService(summary_service=summary_service)
 
 
 @lru_cache(maxsize=16)
