@@ -16,6 +16,7 @@ from parser.tree_sitter_parser import TreeSitterParserService
 from backend.app.core.config import Settings, get_cached_settings
 from backend.app.repositories.metadata import MetadataRepository
 from backend.app.services.metadata import MetadataService
+from backend.app.services.repository_chunker import RepositoryChunkerService
 from backend.app.services.repository_import import RepositoryImportService
 from backend.app.services.repository_scanner import RepositoryScannerService
 
@@ -93,6 +94,19 @@ def get_call_graph_service(
 ) -> CallGraphService:
     """Provide call graph construction operations to API routes."""
     return CallGraphService(scanner=scanner, parser=parser)
+
+
+def get_repository_chunker_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
+    parser: Annotated[TreeSitterParserService, Depends(get_tree_sitter_parser_service)],
+) -> RepositoryChunkerService:
+    """Provide repository chunk generation operations."""
+    return RepositoryChunkerService(
+        scanner=scanner,
+        parser=parser,
+        max_chunk_chars=settings.repository_chunk_max_chars,
+    )
 
 
 @lru_cache(maxsize=16)

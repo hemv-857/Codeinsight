@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     neo4j_password: str = Field(default="forge-ai-dev")
     neo4j_uri: str = Field(default="bolt://localhost:7687")
     neo4j_username: str = Field(default="neo4j")
+    repository_chunk_max_chars: PositiveInt = Field(default=12_000)
     repository_storage_path: Path = Field(default=Path("data/repositories"))
     repository_zip_max_bytes: PositiveInt = Field(default=100 * 1024 * 1024)
     version: str = Field(default="0.1.0")

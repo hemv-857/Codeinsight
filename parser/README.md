@@ -17,3 +17,6 @@ Extracted symbols include functions, classes, methods, variables, imports, expor
 inheritance, and TypeScript interfaces.
 
 Parse results also include function and method call sites for call graph construction.
+
+Repository chunking reuses parser symbol line ranges to create symbol chunks for
+classes, interfaces, functions, and methods before embedding generation.

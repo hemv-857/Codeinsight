@@ -21,6 +21,7 @@ from backend.app.core.dependencies import (
     get_dependency_graph_service,
     get_knowledge_graph_service,
     get_metadata_service,
+    get_repository_chunker_service,
     get_repository_import_service,
     get_repository_scanner_service,
     get_tree_sitter_parser_service,
@@ -54,13 +55,59 @@ from backend.app.schemas.parse import (
     SourcePoint,
     SourceSymbolResponse,
 )
+from backend.app.schemas.repository_chunk import (
+    RepositoryChunkRequest,
+    RepositoryChunkResponseItem,
+    RepositoryChunksResponse,
+    RepositoryChunkStatsResponse,
+    SkippedChunkFileResponse,
+)
 from backend.app.schemas.repository_import import RepositoryImportRequest, RepositoryImportResponse
 from backend.app.schemas.repository_scan import RepositoryScanRequest, RepositoryScanResult
 from backend.app.services.metadata import MetadataService
+from backend.app.services.repository_chunker import (
+    RepositoryChunkError,
+    RepositoryChunkerService,
+    RepositoryChunks,
+)
 from backend.app.services.repository_import import RepositoryImportError, RepositoryImportService
 from backend.app.services.repository_scanner import RepositoryScanError, RepositoryScannerService
 
 router = APIRouter(prefix="/api/repositories", tags=["repositories"])
+
+
+def to_repository_chunks_response(chunks: RepositoryChunks) -> RepositoryChunksResponse:
+    """Convert repository chunks into an API response."""
+    return RepositoryChunksResponse(
+        repository_path=chunks.repository_path,
+        chunks=[
+            RepositoryChunkResponseItem(
+                id=chunk.id,
+                kind=chunk.kind,
+                path=chunk.path,
+                language=chunk.language,
+                content=chunk.content,
+                start_line=chunk.start_line,
+                end_line=chunk.end_line,
+                char_count=chunk.char_count,
+                symbol_kind=chunk.symbol_kind,
+                symbol_name=chunk.symbol_name,
+                symbol_parent=chunk.symbol_parent,
+            )
+            for chunk in chunks.chunks
+        ],
+        skipped_files=[
+            SkippedChunkFileResponse(path=file.path, reason=file.reason)
+            for file in chunks.skipped_files
+        ],
+        stats=RepositoryChunkStatsResponse(
+            source_file_count=chunks.stats.source_file_count,
+            chunk_count=chunks.stats.chunk_count,
+            file_chunk_count=chunks.stats.file_chunk_count,
+            symbol_chunk_count=chunks.stats.symbol_chunk_count,
+            skipped_file_count=chunks.stats.skipped_file_count,
+        ),
+    )
 
 
 def to_call_graph_response(graph: CallGraph) -> CallGraphResponse:
@@ -370,6 +417,38 @@ def build_dependency_graph(
     try:
         return to_dependency_graph_response(service.build(request.repository_path))
     except (RepositoryScanError, DependencyGraphError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/chunks", response_model=RepositoryChunksResponse)
+def chunk_repository(
+    request: RepositoryChunkRequest,
+    service: Annotated[RepositoryChunkerService, Depends(get_repository_chunker_service)],
+) -> RepositoryChunksResponse:
+    """Chunk supported repository source files for later embedding generation."""
+    try:
+        return to_repository_chunks_response(service.chunk_repository(request.repository_path))
+    except (RepositoryScanError, RepositoryChunkError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get("/imports/{import_id}/chunks", response_model=RepositoryChunksResponse)
+def chunk_imported_repository(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[RepositoryChunkerService, Depends(get_repository_chunker_service)],
+) -> RepositoryChunksResponse:
+    """Chunk a previously imported repository for later embedding generation."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise RepositoryChunkError("Repository import has no local path to chunk.")
+        return to_repository_chunks_response(
+            service.chunk_repository(Path(imported_repository.repository_path))
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (RepositoryScanError, RepositoryChunkError) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

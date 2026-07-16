@@ -21,6 +21,7 @@ Configuration is loaded from environment variables prefixed with `FORGE_AI_`.
 - `FORGE_AI_NEO4J_PASSWORD`
 - `FORGE_AI_NEO4J_URI`
 - `FORGE_AI_NEO4J_USERNAME`
+- `FORGE_AI_REPOSITORY_CHUNK_MAX_CHARS`
 - `FORGE_AI_REPOSITORY_CLONE_TIMEOUT_SECONDS`
 - `FORGE_AI_REPOSITORY_STORAGE_PATH`
 - `FORGE_AI_REPOSITORY_ZIP_MAX_BYTES`
@@ -46,6 +47,8 @@ Repository import endpoints:
 - `GET /api/repositories/imports/{import_id}/call-graph`
 - `POST /api/repositories/knowledge-graph`
 - `GET /api/repositories/imports/{import_id}/knowledge-graph`
+- `POST /api/repositories/chunks`
+- `GET /api/repositories/imports/{import_id}/chunks`
 
 Parse responses include compact AST metadata and extracted source symbols.
 Supported parser languages are C, C++, Go, Java, JavaScript, Python, Rust, and TypeScript.
@@ -58,3 +61,5 @@ then replace the repository graph in Neo4j. If Neo4j is unavailable, the backend
 falls back to an in-memory NetworkX graph and reports the selected persistence
 backend in the response. Each knowledge graph build also writes a durable SQLite
 snapshot for read-back and recovery.
+Repository chunk endpoints generate deterministic file and symbol chunks for the
+embedding pipeline without generating embeddings.
