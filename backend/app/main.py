@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 
 from backend.app.api.routes.health import router as health_router
+from backend.app.api.routes.repositories import router as repositories_router
 from backend.app.core.config import Settings, get_cached_settings
 from backend.app.core.dependencies import get_settings
 from backend.app.core.logging import configure_logging
@@ -25,6 +26,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.dependency_overrides[get_settings] = provide_settings
     app.include_router(health_router)
+    app.include_router(repositories_router)
 
     logger.info("Forge AI backend started", extra={"environment": resolved_settings.environment})
     return app

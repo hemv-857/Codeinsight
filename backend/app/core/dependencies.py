@@ -1,6 +1,38 @@
+from functools import lru_cache
+from pathlib import Path
+from typing import Annotated
+
+from fastapi import Depends
+
 from backend.app.core.config import Settings, get_cached_settings
+from backend.app.services.repository_import import RepositoryImportService
 
 
 def get_settings() -> Settings:
     """Provide application settings to FastAPI routes."""
     return get_cached_settings()
+
+
+@lru_cache(maxsize=16)
+def get_cached_repository_import_service(
+    storage_root: str,
+    clone_timeout_seconds: int,
+    max_zip_bytes: int,
+) -> RepositoryImportService:
+    """Return a repository import service for a storage configuration."""
+    return RepositoryImportService(
+        storage_root=Path(storage_root),
+        clone_timeout_seconds=clone_timeout_seconds,
+        max_zip_bytes=max_zip_bytes,
+    )
+
+
+def get_repository_import_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> RepositoryImportService:
+    """Provide repository import operations to API routes."""
+    return get_cached_repository_import_service(
+        storage_root=str(settings.repository_storage_path),
+        clone_timeout_seconds=settings.repository_clone_timeout_seconds,
+        max_zip_bytes=settings.repository_zip_max_bytes,
+    )
