@@ -5,6 +5,7 @@ import { Activity, Braces, GitBranch, Network, Search } from 'lucide-react';
 import { useState } from 'react';
 
 import { CircularDependenciesPanel } from '@/components/circular-dependencies-panel';
+import { DeadCodePanel } from '@/components/dead-code-panel';
 import { DependencyGraphPanel } from '@/components/dependency-graph-panel';
 import { HealthBadge } from '@/components/health-badge';
 import { KnowledgeGraphPanel } from '@/components/knowledge-graph-panel';
@@ -134,6 +135,19 @@ export function Dashboard() {
                 <GitBranch className="h-5 w-5 text-accent" />
               </div>
               <CircularDependenciesPanel scan={scan} />
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Dead Code</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Find unreferenced files and uncalled functions from repository graphs.
+                  </p>
+                </div>
+                <Search className="h-5 w-5 text-accent" />
+              </div>
+              <DeadCodePanel scan={scan} />
             </section>
 
             <section className="space-y-4">

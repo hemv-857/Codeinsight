@@ -24,6 +24,7 @@ from backend.app.core.dependencies import (
     get_call_graph_service,
     get_circular_dependency_service,
     get_conversation_memory_service,
+    get_dead_code_service,
     get_dependency_graph_service,
     get_embedding_service,
     get_hybrid_retrieval_service,
@@ -62,6 +63,12 @@ from backend.app.schemas.circular_dependencies import (
 from backend.app.schemas.conversation_memory import (
     ConversationMessageResponse,
     ConversationSessionResponse,
+)
+from backend.app.schemas.dead_code import (
+    DeadCodeFindingResponse,
+    DeadCodeRequest,
+    DeadCodeResponse,
+    DeadCodeStatsResponse,
 )
 from backend.app.schemas.dependency_graph import (
     DependencyEdgeResponse,
@@ -142,6 +149,7 @@ from backend.app.services.conversation_memory import (
     ConversationMemoryError,
     ConversationMemoryService,
 )
+from backend.app.services.dead_code import DeadCodeError, DeadCodeReport, DeadCodeService
 from backend.app.services.embedding import EmbeddingError, EmbeddingService, RepositoryEmbeddings
 from backend.app.services.metadata import MetadataService
 from backend.app.services.repository_chunker import (
@@ -408,6 +416,33 @@ def to_circular_dependency_response(
             affected_file_count=result.stats.affected_file_count,
             max_cycle_length=result.stats.max_cycle_length,
             internal_dependency_count=result.stats.internal_dependency_count,
+        ),
+    )
+
+
+def to_dead_code_response(result: DeadCodeReport) -> DeadCodeResponse:
+    """Convert dead code detection output into an API response."""
+    return DeadCodeResponse(
+        repository_path=result.repository_path,
+        findings=[
+            DeadCodeFindingResponse(
+                kind=finding.kind,
+                path=finding.path,
+                title=finding.title,
+                description=finding.description,
+                confidence=finding.confidence,
+                line=finding.line,
+                symbol_name=finding.symbol_name,
+                evidence=list(finding.evidence),
+            )
+            for finding in result.findings
+        ],
+        stats=DeadCodeStatsResponse(
+            file_count=result.stats.file_count,
+            callable_count=result.stats.callable_count,
+            finding_count=result.stats.finding_count,
+            unused_file_count=result.stats.unused_file_count,
+            unused_callable_count=result.stats.unused_callable_count,
         ),
     )
 
@@ -972,6 +1007,18 @@ def detect_repository_circular_dependencies(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 
+@router.post("/dead-code", response_model=DeadCodeResponse)
+def detect_repository_dead_code(
+    request: DeadCodeRequest,
+    service: Annotated[DeadCodeService, Depends(get_dead_code_service)],
+) -> DeadCodeResponse:
+    """Detect candidate dead code for a repository path."""
+    try:
+        return to_dead_code_response(service.detect(request.repository_path))
+    except DeadCodeError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
 @router.get("/imports/{import_id}/technical-debt", response_model=TechnicalDebtResponse)
 def analyze_imported_repository_technical_debt(
     import_id: str,
@@ -1012,6 +1059,24 @@ def detect_imported_repository_circular_dependencies(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except CircularDependencyError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get("/imports/{import_id}/dead-code", response_model=DeadCodeResponse)
+def detect_imported_repository_dead_code(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[DeadCodeService, Depends(get_dead_code_service)],
+) -> DeadCodeResponse:
+    """Detect candidate dead code for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise DeadCodeError("Repository import has no local path to analyze.")
+        return to_dead_code_response(service.detect(Path(imported_repository.repository_path)))
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except DeadCodeError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

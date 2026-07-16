@@ -27,6 +27,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/app/globals.css",
         "frontend/components/dashboard.tsx",
         "frontend/components/circular-dependencies-panel.tsx",
+        "frontend/components/dead-code-panel.tsx",
         "frontend/components/dependency-graph-panel.tsx",
         "frontend/components/graph-control-toggle.tsx",
         "frontend/components/knowledge-graph-panel.tsx",
@@ -98,6 +99,16 @@ def test_frontend_circular_dependencies_uses_cycle_apis() -> None:
     assert "/circular-dependencies" in api_source
     assert "detectCircularDependencies" in cycle_source
     assert "detectImportedCircularDependencies" in cycle_source
+
+
+def test_frontend_dead_code_uses_dead_code_apis() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+    dead_code_source = (ROOT / "frontend" / "components" / "dead-code-panel.tsx").read_text()
+
+    assert "/api/repositories/dead-code" in api_source
+    assert "/dead-code" in api_source
+    assert "detectDeadCode" in dead_code_source
+    assert "detectImportedDeadCode" in dead_code_source
 
 
 def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:

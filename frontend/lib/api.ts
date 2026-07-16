@@ -174,6 +174,33 @@ export interface TechnicalDebtReport {
   stats: TechnicalDebtStats;
 }
 
+export type DeadCodeKind = 'unused_file' | 'unused_callable';
+
+export interface DeadCodeFinding {
+  kind: DeadCodeKind;
+  path: string;
+  title: string;
+  description: string;
+  confidence: number;
+  line: number | null;
+  symbol_name: string | null;
+  evidence: string[];
+}
+
+export interface DeadCodeStats {
+  file_count: number;
+  callable_count: number;
+  finding_count: number;
+  unused_file_count: number;
+  unused_callable_count: number;
+}
+
+export interface DeadCodeReport {
+  repository_path: string;
+  findings: DeadCodeFinding[];
+  stats: DeadCodeStats;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -266,6 +293,30 @@ export async function detectImportedCircularDependencies(
   }
 
   return response.json() as Promise<CircularDependencyReport>;
+}
+
+export async function detectDeadCode(repositoryPath: string): Promise<DeadCodeReport> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/dead-code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repository_path: repositoryPath }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Dead code detection failed'));
+  }
+
+  return response.json() as Promise<DeadCodeReport>;
+}
+
+export async function detectImportedDeadCode(importId: string): Promise<DeadCodeReport> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/imports/${importId}/dead-code`);
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Imported dead code detection failed'));
+  }
+
+  return response.json() as Promise<DeadCodeReport>;
 }
 
 export async function buildKnowledgeGraph(repositoryPath: string): Promise<KnowledgeGraphResult> {

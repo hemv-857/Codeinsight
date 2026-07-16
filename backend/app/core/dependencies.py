@@ -20,6 +20,7 @@ from backend.app.repositories.vector_store import VectorStoreRepository
 from backend.app.services.architecture_explanation import ArchitectureExplanationService
 from backend.app.services.circular_dependencies import CircularDependencyService
 from backend.app.services.conversation_memory import ConversationMemoryService
+from backend.app.services.dead_code import DeadCodeService
 from backend.app.services.embedding import (
     EmbeddingClient,
     EmbeddingService,
@@ -226,6 +227,14 @@ def get_circular_dependency_service(
 ) -> CircularDependencyService:
     """Provide circular dependency detection operations."""
     return CircularDependencyService(dependency_graph=dependency_graph)
+
+
+def get_dead_code_service(
+    dependency_graph: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
+    call_graph: Annotated[CallGraphService, Depends(get_call_graph_service)],
+) -> DeadCodeService:
+    """Provide dead code detection operations."""
+    return DeadCodeService(dependency_graph=dependency_graph, call_graph=call_graph)
 
 
 def get_architecture_explanation_service(

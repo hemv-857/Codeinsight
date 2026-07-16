@@ -22,6 +22,8 @@ The technical debt panel analyzes a repository path or import ID and displays ma
 
 The circular dependencies panel detects file-level import cycles from a repository path or import ID and displays impact statistics plus participating edges.
 
+The dead code panel reports candidate unreferenced files and uncalled functions from dependency and call graph evidence.
+
 The dependency graph panel can build file-level import graphs from a repository path or import ID and render internal dependencies, unresolved imports, and detected cycles.
 
 The knowledge graph panel can build and persist the repository architecture graph, then display graph size, relationship counts, and the selected persistence backend.

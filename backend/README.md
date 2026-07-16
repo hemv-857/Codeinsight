@@ -67,6 +67,8 @@ Repository import endpoints:
 - `GET /api/repositories/imports/{import_id}/technical-debt`
 - `POST /api/repositories/circular-dependencies`
 - `GET /api/repositories/imports/{import_id}/circular-dependencies`
+- `POST /api/repositories/dead-code`
+- `GET /api/repositories/imports/{import_id}/dead-code`
 - `POST /api/repositories/summary`
 - `GET /api/repositories/imports/{import_id}/summary`
 - `POST /api/repositories/architecture-explanation`
@@ -104,6 +106,8 @@ maintainability risks such as large files, long symbols, broad types, high fan-o
 parser errors, dependency cycles, and estimated cyclomatic complexity.
 Circular dependency endpoints return dedicated file-level import cycles with
 affected file counts, maximum cycle length, and the import edges in each cycle.
+Dead code endpoints report conservative candidates for unreferenced source files
+and uncalled functions or methods from dependency and call graph evidence.
 Repository summary endpoints generate grounded repository overviews from scanner,
 parser, dependency graph, call graph, and vector index metadata.
 Architecture explanation endpoints turn those grounded facts into component,
