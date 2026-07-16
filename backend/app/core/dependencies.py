@@ -35,6 +35,7 @@ from backend.app.services.repository_qa import RepositoryQAService
 from backend.app.services.repository_scanner import RepositoryScannerService
 from backend.app.services.repository_summary import RepositorySummaryService
 from backend.app.services.retrieval import HybridRetrievalService
+from backend.app.services.stack_trace import StackTraceParserService
 from backend.app.services.technical_debt import TechnicalDebtService
 from backend.app.services.vector_store import VectorStoreService
 
@@ -243,6 +244,12 @@ def get_architecture_violation_service(
 ) -> ArchitectureViolationService:
     """Provide architecture violation detection operations."""
     return ArchitectureViolationService(dependency_graph=dependency_graph)
+
+
+@lru_cache(maxsize=1)
+def get_stack_trace_parser_service() -> StackTraceParserService:
+    """Provide stack trace parsing operations."""
+    return StackTraceParserService()
 
 
 def get_architecture_explanation_service(

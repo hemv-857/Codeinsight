@@ -35,6 +35,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/components/providers.tsx",
         "frontend/components/repository-explorer.tsx",
         "frontend/components/repository-search-panel.tsx",
+        "frontend/components/stack-trace-panel.tsx",
         "frontend/components/technical-debt-panel.tsx",
         "frontend/tailwind.config.ts",
     ]
@@ -122,6 +123,15 @@ def test_frontend_architecture_violations_uses_violation_apis() -> None:
     assert "/architecture-violations" in api_source
     assert "detectArchitectureViolations" in violation_source
     assert "detectImportedArchitectureViolations" in violation_source
+
+
+def test_frontend_stack_trace_parser_uses_stack_trace_api() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+    parser_source = (ROOT / "frontend" / "components" / "stack-trace-panel.tsx").read_text()
+
+    assert "/api/repositories/stack-trace/parse" in api_source
+    assert "parseStackTrace" in parser_source
+    assert "StackTracePanel" in parser_source
 
 
 def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:

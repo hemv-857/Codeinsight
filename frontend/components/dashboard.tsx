@@ -12,6 +12,7 @@ import { HealthBadge } from '@/components/health-badge';
 import { KnowledgeGraphPanel } from '@/components/knowledge-graph-panel';
 import { RepositoryExplorer } from '@/components/repository-explorer';
 import { RepositorySearchPanel } from '@/components/repository-search-panel';
+import { StackTracePanel } from '@/components/stack-trace-panel';
 import { TechnicalDebtPanel } from '@/components/technical-debt-panel';
 import { Button } from '@/components/ui/button';
 import type { RepositoryScanResult } from '@/lib/api';
@@ -162,6 +163,19 @@ export function Dashboard() {
                 <Activity className="h-5 w-5 text-accent" />
               </div>
               <ArchitectureViolationsPanel scan={scan} />
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Stack Trace Parser</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Extract files, functions, lines, and error metadata from runtime traces.
+                  </p>
+                </div>
+                <Activity className="h-5 w-5 text-accent" />
+              </div>
+              <StackTracePanel />
             </section>
 
             <section className="space-y-4">

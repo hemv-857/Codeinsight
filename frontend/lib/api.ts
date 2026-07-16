@@ -230,6 +230,33 @@ export interface ArchitectureViolationReport {
   stats: ArchitectureViolationStats;
 }
 
+export type StackTraceLanguage = 'python' | 'javascript' | 'java' | 'go' | 'unknown';
+
+export interface StackTraceFrame {
+  file_path: string;
+  line: number;
+  column: number | null;
+  function: string | null;
+  language: StackTraceLanguage;
+  raw: string;
+}
+
+export interface StackTraceStats {
+  frame_count: number;
+  language: StackTraceLanguage;
+  file_count: number;
+}
+
+export interface ParsedStackTrace {
+  raw: string;
+  language: StackTraceLanguage;
+  error_type: string | null;
+  message: string | null;
+  frames: StackTraceFrame[];
+  files: string[];
+  stats: StackTraceStats;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -378,6 +405,20 @@ export async function detectImportedArchitectureViolations(
   }
 
   return response.json() as Promise<ArchitectureViolationReport>;
+}
+
+export async function parseStackTrace(stackTrace: string): Promise<ParsedStackTrace> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/stack-trace/parse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stack_trace: stackTrace }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Stack trace parsing failed'));
+  }
+
+  return response.json() as Promise<ParsedStackTrace>;
 }
 
 export async function buildKnowledgeGraph(repositoryPath: string): Promise<KnowledgeGraphResult> {

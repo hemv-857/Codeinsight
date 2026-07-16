@@ -36,6 +36,7 @@ from backend.app.core.dependencies import (
     get_repository_qa_service,
     get_repository_scanner_service,
     get_repository_summary_service,
+    get_stack_trace_parser_service,
     get_technical_debt_service,
     get_tree_sitter_parser_service,
     get_vector_store_service,
@@ -135,6 +136,12 @@ from backend.app.schemas.retrieval import (
     HybridRetrievalStatsResponse,
     ImportedHybridRetrievalRequest,
 )
+from backend.app.schemas.stack_trace import (
+    StackTraceFrameResponse,
+    StackTraceParseRequest,
+    StackTraceParseResponse,
+    StackTraceStatsResponse,
+)
 from backend.app.schemas.technical_debt import (
     TechnicalDebtFindingResponse,
     TechnicalDebtRequest,
@@ -182,6 +189,11 @@ from backend.app.services.repository_summary import (
     RepositorySummaryService,
 )
 from backend.app.services.retrieval import HybridRetrieval, HybridRetrievalService, RetrievalError
+from backend.app.services.stack_trace import (
+    StackTrace,
+    StackTraceParseError,
+    StackTraceParserService,
+)
 from backend.app.services.technical_debt import (
     TechnicalDebtError,
     TechnicalDebtReport,
@@ -486,6 +498,33 @@ def to_architecture_violation_response(
             high_count=result.stats.high_count,
             medium_count=result.stats.medium_count,
             low_count=result.stats.low_count,
+        ),
+    )
+
+
+def to_stack_trace_response(result: StackTrace) -> StackTraceParseResponse:
+    """Convert parsed stack trace output into an API response."""
+    return StackTraceParseResponse(
+        raw=result.raw,
+        language=result.language,
+        error_type=result.error_type,
+        message=result.message,
+        frames=[
+            StackTraceFrameResponse(
+                file_path=frame.file_path,
+                line=frame.line,
+                column=frame.column,
+                function=frame.function,
+                language=frame.language,
+                raw=frame.raw,
+            )
+            for frame in result.frames
+        ],
+        files=list(result.files),
+        stats=StackTraceStatsResponse(
+            frame_count=result.stats.frame_count,
+            language=result.stats.language,
+            file_count=result.stats.file_count,
         ),
     )
 
@@ -1071,6 +1110,18 @@ def detect_repository_architecture_violations(
     try:
         return to_architecture_violation_response(service.detect(request.repository_path))
     except ArchitectureViolationError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/stack-trace/parse", response_model=StackTraceParseResponse)
+def parse_stack_trace(
+    request: StackTraceParseRequest,
+    service: Annotated[StackTraceParserService, Depends(get_stack_trace_parser_service)],
+) -> StackTraceParseResponse:
+    """Parse a pasted stack trace into normalized frames."""
+    try:
+        return to_stack_trace_response(service.parse(request.stack_trace))
+    except StackTraceParseError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

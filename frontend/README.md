@@ -26,6 +26,8 @@ The dead code panel reports candidate unreferenced files and uncalled functions 
 
 The architecture violations panel flags common layer-boundary import issues with severity, confidence, and edge evidence.
 
+The stack trace parser panel extracts files, functions, line numbers, language, and error metadata from pasted traces.
+
 The dependency graph panel can build file-level import graphs from a repository path or import ID and render internal dependencies, unresolved imports, and detected cycles.
 
 The knowledge graph panel can build and persist the repository architecture graph, then display graph size, relationship counts, and the selected persistence backend.
