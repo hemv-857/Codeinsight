@@ -61,11 +61,12 @@ class KnowledgeGraph:
 
 @dataclass(frozen=True)
 class KnowledgeGraphPersistenceResult:
-    """Result of writing a knowledge graph to Neo4j."""
+    """Result of writing a knowledge graph to a graph backend."""
 
     persisted: bool
     node_count: int
     edge_count: int
+    backend: str = "unknown"
 
 
 class KnowledgeGraphRepository:

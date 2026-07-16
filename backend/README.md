@@ -53,4 +53,6 @@ unresolved imports, circular dependencies, and graph statistics.
 Call graph responses include callable nodes, call edges, unresolved calls, recursive
 calls, and graph statistics.
 Knowledge graph endpoints build repository architecture nodes and relationships,
-then replace the repository graph in Neo4j.
+then replace the repository graph in Neo4j. If Neo4j is unavailable, the backend
+falls back to an in-memory NetworkX graph and reports the selected persistence
+backend in the response.

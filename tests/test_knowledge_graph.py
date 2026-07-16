@@ -8,6 +8,7 @@ from backend.app.services.repository_scanner import RepositoryScannerService
 from fastapi.testclient import TestClient
 from graph.call_graph import CallGraphService
 from graph.dependency_graph import DependencyGraphService
+from graph.fallback_repository import FallbackKnowledgeGraphRepository
 from graph.knowledge_graph import (
     KnowledgeGraph,
     KnowledgeGraphPersistenceResult,
@@ -15,7 +16,13 @@ from graph.knowledge_graph import (
     KnowledgeGraphService,
 )
 from graph.neo4j_repository import Neo4jKnowledgeGraphRepository
+from graph.networkx_repository import NetworkXKnowledgeGraphRepository
 from parser.tree_sitter_parser import TreeSitterParserService
+
+
+class FailingKnowledgeGraphRepository(KnowledgeGraphRepository):
+    def replace(self, graph: KnowledgeGraph) -> KnowledgeGraphPersistenceResult:
+        raise RuntimeError("Neo4j unavailable")
 
 
 class RecordingKnowledgeGraphRepository(KnowledgeGraphRepository):
@@ -28,6 +35,7 @@ class RecordingKnowledgeGraphRepository(KnowledgeGraphRepository):
             persisted=True,
             node_count=len(graph.nodes),
             edge_count=len(graph.edges),
+            backend="test",
         )
 
 
@@ -166,9 +174,42 @@ def test_neo4j_repository_replaces_graph_with_cypher_writes(tmp_path: Path) -> N
 
     queries = [query for query, _parameters in driver.session_instance.queries]
     assert result.persisted is True
+    assert result.backend == "neo4j"
     assert queries[0].startswith("MATCH (n:ForgeNode")
     assert any("MERGE (n:ForgeNode:Repository" in query for query in queries)
     assert any("MERGE (source)-[edge:CALLS]" in query for query in queries)
+
+
+def test_networkx_repository_replaces_in_memory_graph(tmp_path: Path) -> None:
+    create_repository_fixture(tmp_path)
+    service = create_service(RecordingKnowledgeGraphRepository())
+    graph = service.build(tmp_path)
+    repository = NetworkXKnowledgeGraphRepository()
+
+    result = repository.replace(graph)
+
+    assert result.backend == "networkx"
+    assert repository.graph.number_of_nodes() == len(graph.nodes)
+    assert repository.graph.number_of_edges() == len(graph.edges)
+    assert repository.graph.has_node("file:app/main.py")
+    assert repository.graph.has_edge("file:app/main.py", "file:app/service.py", key="IMPORTS")
+
+
+def test_fallback_repository_uses_networkx_when_primary_fails(tmp_path: Path) -> None:
+    create_repository_fixture(tmp_path)
+    service = create_service(RecordingKnowledgeGraphRepository())
+    graph = service.build(tmp_path)
+    fallback = NetworkXKnowledgeGraphRepository()
+    repository = FallbackKnowledgeGraphRepository(
+        primary=FailingKnowledgeGraphRepository(),
+        fallback=fallback,
+    )
+
+    result = repository.replace(graph)
+
+    assert result.persisted is True
+    assert result.backend == "networkx"
+    assert fallback.graph.number_of_nodes() == len(graph.nodes)
 
 
 def test_knowledge_graph_api_for_repository_path(tmp_path: Path) -> None:
@@ -186,6 +227,7 @@ def test_knowledge_graph_api_for_repository_path(tmp_path: Path) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["persistence"]["persisted"] is True
+    assert body["persistence"]["backend"] == "test"
     assert body["stats"]["file_count"] == 2
     assert body["stats"]["call_edge_count"] == 2
 

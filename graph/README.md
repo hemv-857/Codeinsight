@@ -13,3 +13,7 @@ possible, and reports unresolved and recursive calls.
 Milestone 13 provides a repository knowledge graph builder and Neo4j writer for
 repository, directory, file, symbol, import, call, containment, and inheritance
 relationships.
+
+Milestone 14 adds a NetworkX-backed repository fallback. Knowledge graph writes
+try Neo4j first and fall back to an in-memory `networkx.MultiDiGraph` when the
+primary graph backend is unavailable.

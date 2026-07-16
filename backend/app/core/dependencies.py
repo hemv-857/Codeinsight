@@ -5,8 +5,10 @@ from typing import Annotated
 from fastapi import Depends
 from graph.call_graph import CallGraphService
 from graph.dependency_graph import DependencyGraphService
-from graph.knowledge_graph import KnowledgeGraphService
+from graph.fallback_repository import FallbackKnowledgeGraphRepository
+from graph.knowledge_graph import KnowledgeGraphRepository, KnowledgeGraphService
 from graph.neo4j_repository import Neo4jKnowledgeGraphRepository
+from graph.networkx_repository import NetworkXKnowledgeGraphRepository
 from parser.tree_sitter_parser import TreeSitterParserService
 
 from backend.app.core.config import Settings, get_cached_settings
@@ -107,6 +109,25 @@ def get_cached_neo4j_repository(
     )
 
 
+@lru_cache(maxsize=16)
+def get_cached_knowledge_graph_repository(
+    uri: str,
+    username: str,
+    password: str,
+    database: str,
+) -> KnowledgeGraphRepository:
+    """Return a Neo4j-first repository with an in-memory NetworkX fallback."""
+    return FallbackKnowledgeGraphRepository(
+        primary=get_cached_neo4j_repository(
+            uri=uri,
+            username=username,
+            password=password,
+            database=database,
+        ),
+        fallback=NetworkXKnowledgeGraphRepository(),
+    )
+
+
 def get_knowledge_graph_service(
     settings: Annotated[Settings, Depends(get_settings)],
     scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
@@ -120,7 +141,7 @@ def get_knowledge_graph_service(
         parser=parser,
         dependency_graph=dependency_graph,
         call_graph=call_graph,
-        repository=get_cached_neo4j_repository(
+        repository=get_cached_knowledge_graph_repository(
             uri=settings.neo4j_uri,
             username=settings.neo4j_username,
             password=settings.neo4j_password,

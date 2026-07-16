@@ -23,11 +23,12 @@ class KnowledgeGraphStatsResponse(BaseModel):
 
 
 class KnowledgeGraphPersistenceResponse(BaseModel):
-    """Neo4j persistence result."""
+    """Graph persistence result."""
 
     persisted: bool
     node_count: int = Field(ge=0)
     edge_count: int = Field(ge=0)
+    backend: str
 
     model_config = ConfigDict(frozen=True)
 
