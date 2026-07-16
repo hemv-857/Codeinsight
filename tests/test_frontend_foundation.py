@@ -34,6 +34,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/components/dependency-graph-panel.tsx",
         "frontend/components/graph-control-toggle.tsx",
         "frontend/components/knowledge-graph-panel.tsx",
+        "frontend/components/mermaid-diagrams-panel.tsx",
         "frontend/components/providers.tsx",
         "frontend/components/readme-generator-panel.tsx",
         "frontend/components/repository-explorer.tsx",
@@ -167,6 +168,17 @@ def test_frontend_architecture_docs_uses_architecture_docs_apis() -> None:
     assert "generateArchitectureDocs" in docs_source
     assert "generateImportedArchitectureDocs" in docs_source
     assert "ArchitectureDocsPanel" in docs_source
+
+
+def test_frontend_mermaid_diagrams_uses_mermaid_apis() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+    diagram_source = (ROOT / "frontend" / "components" / "mermaid-diagrams-panel.tsx").read_text()
+
+    assert "/api/repositories/mermaid-diagrams" in api_source
+    assert "/mermaid-diagrams" in api_source
+    assert "generateMermaidDiagrams" in diagram_source
+    assert "generateImportedMermaidDiagrams" in diagram_source
+    assert "MermaidDiagramsPanel" in diagram_source
 
 
 def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:

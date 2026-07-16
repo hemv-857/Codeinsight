@@ -352,6 +352,27 @@ export interface GeneratedArchitectureDoc {
   stats: ArchitectureDocStats;
 }
 
+export interface MermaidDiagram {
+  kind: string;
+  title: string;
+  description: string;
+  code: string;
+}
+
+export interface MermaidDiagramStats {
+  diagram_count: number;
+  dependency_edge_count: number;
+  call_edge_count: number;
+  component_count: number;
+}
+
+export interface MermaidDiagramSet {
+  repository_path: string;
+  focus: string | null;
+  diagrams: MermaidDiagram[];
+  stats: MermaidDiagramStats;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -622,6 +643,43 @@ export async function generateImportedArchitectureDocs(
   }
 
   return response.json() as Promise<GeneratedArchitectureDoc>;
+}
+
+export async function generateMermaidDiagrams(
+  repositoryPath: string,
+  focus?: string,
+): Promise<MermaidDiagramSet> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/mermaid-diagrams`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repository_path: repositoryPath, focus: focus || null }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Mermaid diagram generation failed'));
+  }
+
+  return response.json() as Promise<MermaidDiagramSet>;
+}
+
+export async function generateImportedMermaidDiagrams(
+  importId: string,
+  focus?: string,
+): Promise<MermaidDiagramSet> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/repositories/imports/${importId}/mermaid-diagrams`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ focus: focus || null }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Imported Mermaid diagram generation failed'));
+  }
+
+  return response.json() as Promise<MermaidDiagramSet>;
 }
 
 export async function buildKnowledgeGraph(repositoryPath: string): Promise<KnowledgeGraphResult> {

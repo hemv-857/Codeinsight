@@ -32,6 +32,7 @@ from backend.app.core.dependencies import (
     get_embedding_service,
     get_hybrid_retrieval_service,
     get_knowledge_graph_service,
+    get_mermaid_diagram_service,
     get_metadata_service,
     get_readme_generator_service,
     get_repository_chunker_service,
@@ -114,6 +115,13 @@ from backend.app.schemas.knowledge_graph import (
     KnowledgeGraphRequest,
     KnowledgeGraphResponse,
     KnowledgeGraphStatsResponse,
+)
+from backend.app.schemas.mermaid_diagrams import (
+    ImportedMermaidDiagramRequest,
+    MermaidDiagramRequest,
+    MermaidDiagramResponse,
+    MermaidDiagramSetResponse,
+    MermaidDiagramStatsResponse,
 )
 from backend.app.schemas.metadata import MetadataPersistRequest, StoredRepositoryMetadata
 from backend.app.schemas.parse import (
@@ -205,6 +213,11 @@ from backend.app.services.conversation_memory import (
 )
 from backend.app.services.dead_code import DeadCodeError, DeadCodeReport, DeadCodeService
 from backend.app.services.embedding import EmbeddingError, EmbeddingService, RepositoryEmbeddings
+from backend.app.services.mermaid_diagrams import (
+    MermaidDiagramError,
+    MermaidDiagramService,
+    MermaidDiagramSet,
+)
 from backend.app.services.metadata import MetadataService
 from backend.app.services.readme_generator import (
     GeneratedReadme,
@@ -289,6 +302,29 @@ def to_architecture_doc_response(
             component_count=result.stats.component_count,
             evidence_path_count=result.stats.evidence_path_count,
             confidence=result.stats.confidence,
+        ),
+    )
+
+
+def to_mermaid_diagram_response(result: MermaidDiagramSet) -> MermaidDiagramSetResponse:
+    """Convert generated Mermaid diagrams into an API response."""
+    return MermaidDiagramSetResponse(
+        repository_path=result.repository_path,
+        focus=result.focus,
+        diagrams=[
+            MermaidDiagramResponse(
+                kind=diagram.kind,
+                title=diagram.title,
+                description=diagram.description,
+                code=diagram.code,
+            )
+            for diagram in result.diagrams
+        ],
+        stats=MermaidDiagramStatsResponse(
+            diagram_count=result.stats.diagram_count,
+            dependency_edge_count=result.stats.dependency_edge_count,
+            call_edge_count=result.stats.call_edge_count,
+            component_count=result.stats.component_count,
         ),
     )
 
@@ -1545,6 +1581,47 @@ def generate_imported_repository_architecture_docs(
         ArchitectureExplanationError,
         ArchitectureDocsError,
     ) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/mermaid-diagrams", response_model=MermaidDiagramSetResponse)
+def generate_repository_mermaid_diagrams(
+    request: MermaidDiagramRequest,
+    service: Annotated[MermaidDiagramService, Depends(get_mermaid_diagram_service)],
+) -> MermaidDiagramSetResponse:
+    """Generate Mermaid diagrams for a repository path."""
+    try:
+        return to_mermaid_diagram_response(
+            service.generate(repository_path=request.repository_path, focus=request.focus)
+        )
+    except MermaidDiagramError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post(
+    "/imports/{import_id}/mermaid-diagrams",
+    response_model=MermaidDiagramSetResponse,
+)
+def generate_imported_repository_mermaid_diagrams(
+    import_id: str,
+    request: ImportedMermaidDiagramRequest,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[MermaidDiagramService, Depends(get_mermaid_diagram_service)],
+) -> MermaidDiagramSetResponse:
+    """Generate Mermaid diagrams for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise MermaidDiagramError("Repository import has no local path to diagram.")
+        return to_mermaid_diagram_response(
+            service.generate(
+                repository_path=Path(imported_repository.repository_path),
+                focus=request.focus,
+            )
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except MermaidDiagramError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

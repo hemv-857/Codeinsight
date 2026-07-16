@@ -12,6 +12,7 @@ import { DeadCodePanel } from '@/components/dead-code-panel';
 import { DependencyGraphPanel } from '@/components/dependency-graph-panel';
 import { HealthBadge } from '@/components/health-badge';
 import { KnowledgeGraphPanel } from '@/components/knowledge-graph-panel';
+import { MermaidDiagramsPanel } from '@/components/mermaid-diagrams-panel';
 import { ReadmeGeneratorPanel } from '@/components/readme-generator-panel';
 import { RepositoryExplorer } from '@/components/repository-explorer';
 import { RepositorySearchPanel } from '@/components/repository-search-panel';
@@ -218,6 +219,19 @@ export function Dashboard() {
                 <FileText className="h-5 w-5 text-accent" />
               </div>
               <ArchitectureDocsPanel scan={scan} />
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Mermaid Diagrams</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Export architecture, dependency, and call-flow diagrams as Mermaid source.
+                  </p>
+                </div>
+                <FileText className="h-5 w-5 text-accent" />
+              </div>
+              <MermaidDiagramsPanel scan={scan} />
             </section>
 
             <section className="space-y-4">

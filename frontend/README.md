@@ -34,6 +34,8 @@ The README generator panel creates repository-grounded Markdown from scanner, pa
 
 The architecture docs panel exports architecture Markdown with components, dependency flow, call flow, observations, evidence paths, and confidence.
 
+The Mermaid diagrams panel exports architecture, dependency, and call-flow Mermaid source from repository graph evidence.
+
 The dependency graph panel can build file-level import graphs from a repository path or import ID and render internal dependencies, unresolved imports, and detected cycles.
 
 The knowledge graph panel can build and persist the repository architecture graph, then display graph size, relationship counts, and the selected persistence backend.

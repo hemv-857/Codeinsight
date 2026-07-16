@@ -82,6 +82,8 @@ Repository import endpoints:
 - `POST /api/repositories/imports/{import_id}/architecture-explanation`
 - `POST /api/repositories/architecture-docs`
 - `POST /api/repositories/imports/{import_id}/architecture-docs`
+- `POST /api/repositories/mermaid-diagrams`
+- `POST /api/repositories/imports/{import_id}/mermaid-diagrams`
 - `POST /api/repositories/question`
 - `POST /api/repositories/imports/{import_id}/question`
 - `POST /api/repositories/question/stream`
@@ -136,6 +138,8 @@ dependency-flow, call-flow, observation, evidence, and confidence sections.
 Architecture documentation endpoints export those grounded architecture facts as
 Markdown with overview, components, dependency flow, call flow, observations,
 evidence, and confidence metadata.
+Mermaid diagram endpoints generate architecture overview, dependency flow, and
+call flow diagram source from the same repository graph evidence.
 Repository Q&A endpoints answer questions from repository summaries, architecture
 explanations, and available hybrid retrieval evidence.
 Streaming Q&A endpoints return Server-Sent Events with `answer.start`,

@@ -30,6 +30,7 @@ from backend.app.services.embedding import (
     OllamaEmbeddingClient,
     OpenAIEmbeddingClient,
 )
+from backend.app.services.mermaid_diagrams import MermaidDiagramService
 from backend.app.services.metadata import MetadataService
 from backend.app.services.readme_generator import ReadmeGeneratorService
 from backend.app.services.repository_chunker import RepositoryChunkerService
@@ -313,6 +314,19 @@ def get_readme_generator_service(
 ) -> ReadmeGeneratorService:
     """Provide README generation operations."""
     return ReadmeGeneratorService(summary_service=summary_service)
+
+
+def get_mermaid_diagram_service(
+    architecture_docs: Annotated[ArchitectureDocsService, Depends(get_architecture_docs_service)],
+    dependency_graph: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
+    call_graph: Annotated[CallGraphService, Depends(get_call_graph_service)],
+) -> MermaidDiagramService:
+    """Provide Mermaid diagram generation operations."""
+    return MermaidDiagramService(
+        architecture_docs=architecture_docs,
+        dependency_graph=dependency_graph,
+        call_graph=call_graph,
+    )
 
 
 @lru_cache(maxsize=16)
