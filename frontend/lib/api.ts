@@ -396,6 +396,44 @@ export interface GeneratedDeveloperOnboarding {
   stats: DeveloperOnboardingStats;
 }
 
+export type ReviewSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface PullRequestFinding {
+  category: string;
+  severity: ReviewSeverity;
+  path: string | null;
+  title: string;
+  description: string;
+  evidence: string[];
+}
+
+export interface PullRequestImpactFile {
+  path: string;
+  reason: string;
+  score: number;
+}
+
+export interface PullRequestReviewStats {
+  changed_file_count: number;
+  impacted_file_count: number;
+  finding_count: number;
+  risk_score: number;
+  risk_level: ReviewSeverity;
+  confidence: number;
+}
+
+export interface PullRequestReview {
+  repository_path: string;
+  title: string | null;
+  description: string | null;
+  changed_files: string[];
+  impacted_files: PullRequestImpactFile[];
+  findings: PullRequestFinding[];
+  recommendations: string[];
+  summary: string;
+  stats: PullRequestReviewStats;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -742,6 +780,57 @@ export async function generateImportedDeveloperOnboarding(
   }
 
   return response.json() as Promise<GeneratedDeveloperOnboarding>;
+}
+
+export async function reviewPullRequest(
+  repositoryPath: string,
+  changedFiles: string[],
+  title?: string,
+  description?: string,
+  diffText?: string,
+): Promise<PullRequestReview> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/pr-review`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      repository_path: repositoryPath,
+      changed_files: changedFiles,
+      title: title || null,
+      description: description || null,
+      diff_text: diffText || null,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Pull request review failed'));
+  }
+
+  return response.json() as Promise<PullRequestReview>;
+}
+
+export async function reviewImportedPullRequest(
+  importId: string,
+  changedFiles: string[],
+  title?: string,
+  description?: string,
+  diffText?: string,
+): Promise<PullRequestReview> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/imports/${importId}/pr-review`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      changed_files: changedFiles,
+      title: title || null,
+      description: description || null,
+      diff_text: diffText || null,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Imported pull request review failed'));
+  }
+
+  return response.json() as Promise<PullRequestReview>;
 }
 
 export async function buildKnowledgeGraph(repositoryPath: string): Promise<KnowledgeGraphResult> {

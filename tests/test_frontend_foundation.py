@@ -37,6 +37,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/components/knowledge-graph-panel.tsx",
         "frontend/components/mermaid-diagrams-panel.tsx",
         "frontend/components/providers.tsx",
+        "frontend/components/pull-request-review-panel.tsx",
         "frontend/components/readme-generator-panel.tsx",
         "frontend/components/repository-explorer.tsx",
         "frontend/components/repository-search-panel.tsx",
@@ -193,6 +194,17 @@ def test_frontend_developer_onboarding_uses_onboarding_apis() -> None:
     assert "generateDeveloperOnboarding" in onboarding_source
     assert "generateImportedDeveloperOnboarding" in onboarding_source
     assert "DeveloperOnboardingPanel" in onboarding_source
+
+
+def test_frontend_pull_request_review_uses_pr_review_apis() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+    review_source = (ROOT / "frontend" / "components" / "pull-request-review-panel.tsx").read_text()
+
+    assert "/api/repositories/pr-review" in api_source
+    assert "/pr-review" in api_source
+    assert "reviewPullRequest" in review_source
+    assert "reviewImportedPullRequest" in review_source
+    assert "PullRequestReviewPanel" in review_source
 
 
 def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:

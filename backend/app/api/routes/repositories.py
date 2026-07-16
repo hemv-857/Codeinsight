@@ -35,6 +35,7 @@ from backend.app.core.dependencies import (
     get_knowledge_graph_service,
     get_mermaid_diagram_service,
     get_metadata_service,
+    get_pull_request_review_service,
     get_readme_generator_service,
     get_repository_chunker_service,
     get_repository_import_service,
@@ -140,6 +141,14 @@ from backend.app.schemas.parse import (
     SourcePoint,
     SourceSymbolResponse,
 )
+from backend.app.schemas.pull_request_review import (
+    ImportedPullRequestReviewRequest,
+    PullRequestFindingResponse,
+    PullRequestImpactFileResponse,
+    PullRequestReviewRequest,
+    PullRequestReviewResponse,
+    PullRequestReviewStatsResponse,
+)
 from backend.app.schemas.readme_generator import (
     GeneratedReadmeResponse,
     ReadmeGenerationRequest,
@@ -232,6 +241,11 @@ from backend.app.services.mermaid_diagrams import (
     MermaidDiagramSet,
 )
 from backend.app.services.metadata import MetadataService
+from backend.app.services.pull_request_review import (
+    PullRequestReview,
+    PullRequestReviewError,
+    PullRequestReviewService,
+)
 from backend.app.services.readme_generator import (
     GeneratedReadme,
     ReadmeGeneratorError,
@@ -364,6 +378,45 @@ def to_developer_onboarding_response(
             word_count=result.stats.word_count,
             evidence_path_count=result.stats.evidence_path_count,
             diagram_count=result.stats.diagram_count,
+            confidence=result.stats.confidence,
+        ),
+    )
+
+
+def to_pull_request_review_response(result: PullRequestReview) -> PullRequestReviewResponse:
+    """Convert pull request review output into an API response."""
+    return PullRequestReviewResponse(
+        repository_path=result.repository_path,
+        title=result.title,
+        description=result.description,
+        changed_files=list(result.changed_files),
+        impacted_files=[
+            PullRequestImpactFileResponse(
+                path=file.path,
+                reason=file.reason,
+                score=file.score,
+            )
+            for file in result.impacted_files
+        ],
+        findings=[
+            PullRequestFindingResponse(
+                category=finding.category,
+                severity=finding.severity,
+                path=finding.path,
+                title=finding.title,
+                description=finding.description,
+                evidence=list(finding.evidence),
+            )
+            for finding in result.findings
+        ],
+        recommendations=list(result.recommendations),
+        summary=result.summary,
+        stats=PullRequestReviewStatsResponse(
+            changed_file_count=result.stats.changed_file_count,
+            impacted_file_count=result.stats.impacted_file_count,
+            finding_count=result.stats.finding_count,
+            risk_score=result.stats.risk_score,
+            risk_level=result.stats.risk_level,
             confidence=result.stats.confidence,
         ),
     )
@@ -1703,6 +1756,53 @@ def generate_imported_repository_developer_onboarding(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except DeveloperOnboardingError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/pr-review", response_model=PullRequestReviewResponse)
+def review_repository_pull_request(
+    request: PullRequestReviewRequest,
+    service: Annotated[PullRequestReviewService, Depends(get_pull_request_review_service)],
+) -> PullRequestReviewResponse:
+    """Review a pull request using repository graph and quality signals."""
+    try:
+        return to_pull_request_review_response(
+            service.review(
+                repository_path=request.repository_path,
+                changed_files=tuple(request.changed_files),
+                title=request.title,
+                description=request.description,
+                diff_text=request.diff_text,
+            )
+        )
+    except PullRequestReviewError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/imports/{import_id}/pr-review", response_model=PullRequestReviewResponse)
+def review_imported_repository_pull_request(
+    import_id: str,
+    request: ImportedPullRequestReviewRequest,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[PullRequestReviewService, Depends(get_pull_request_review_service)],
+) -> PullRequestReviewResponse:
+    """Review a pull request for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise PullRequestReviewError("Repository import has no local path to review.")
+        return to_pull_request_review_response(
+            service.review(
+                repository_path=Path(imported_repository.repository_path),
+                changed_files=tuple(request.changed_files),
+                title=request.title,
+                description=request.description,
+                diff_text=request.diff_text,
+            )
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except PullRequestReviewError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

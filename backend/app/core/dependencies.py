@@ -33,6 +33,7 @@ from backend.app.services.embedding import (
 )
 from backend.app.services.mermaid_diagrams import MermaidDiagramService
 from backend.app.services.metadata import MetadataService
+from backend.app.services.pull_request_review import PullRequestReviewService
 from backend.app.services.readme_generator import ReadmeGeneratorService
 from backend.app.services.repository_chunker import RepositoryChunkerService
 from backend.app.services.repository_import import RepositoryImportService
@@ -340,6 +341,23 @@ def get_developer_onboarding_service(
         readme_generator=readme_generator,
         architecture_docs=architecture_docs,
         mermaid_diagrams=mermaid_diagrams,
+    )
+
+
+def get_pull_request_review_service(
+    scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
+    dependency_graph: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
+    technical_debt: Annotated[TechnicalDebtService, Depends(get_technical_debt_service)],
+    architecture_violations: Annotated[
+        ArchitectureViolationService, Depends(get_architecture_violation_service)
+    ],
+) -> PullRequestReviewService:
+    """Provide pull request review operations."""
+    return PullRequestReviewService(
+        scanner=scanner,
+        dependency_graph=dependency_graph,
+        technical_debt=technical_debt,
+        architecture_violations=architecture_violations,
     )
 
 
