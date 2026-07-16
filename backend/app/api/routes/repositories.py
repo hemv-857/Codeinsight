@@ -4,11 +4,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from backend.app.core.dependencies import (
+    get_metadata_service,
     get_repository_import_service,
     get_repository_scanner_service,
 )
+from backend.app.schemas.metadata import MetadataPersistRequest, StoredRepositoryMetadata
 from backend.app.schemas.repository_import import RepositoryImportRequest, RepositoryImportResponse
 from backend.app.schemas.repository_scan import RepositoryScanRequest, RepositoryScanResult
+from backend.app.services.metadata import MetadataService
 from backend.app.services.repository_import import RepositoryImportError, RepositoryImportService
 from backend.app.services.repository_scanner import RepositoryScanError, RepositoryScannerService
 
@@ -84,6 +87,53 @@ def scan_imported_repository(
         if imported_repository.repository_path is None:
             raise RepositoryScanError("Repository import has no local path to scan.")
         return scanner_service.scan(Path(imported_repository.repository_path))
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except RepositoryScanError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post(
+    "/metadata", response_model=StoredRepositoryMetadata, status_code=status.HTTP_201_CREATED
+)
+def persist_repository_metadata(
+    request: MetadataPersistRequest,
+    service: Annotated[MetadataService, Depends(get_metadata_service)],
+) -> StoredRepositoryMetadata:
+    """Persist scan metadata for a repository path."""
+    try:
+        return service.persist_repository(Path(request.repository_path), request.name)
+    except RepositoryScanError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get("/metadata/{repository_id}", response_model=StoredRepositoryMetadata)
+def get_repository_metadata(
+    repository_id: int,
+    service: Annotated[MetadataService, Depends(get_metadata_service)],
+) -> StoredRepositoryMetadata:
+    """Return stored repository metadata."""
+    try:
+        return service.get_repository(repository_id)
+    except KeyError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Repository metadata was not found.",
+        ) from error
+
+
+@router.get("/imports/{import_id}/metadata", response_model=StoredRepositoryMetadata)
+def persist_imported_repository_metadata(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    metadata_service: Annotated[MetadataService, Depends(get_metadata_service)],
+) -> StoredRepositoryMetadata:
+    """Persist metadata for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise RepositoryScanError("Repository import has no local path to persist.")
+        return metadata_service.persist_repository(Path(imported_repository.repository_path))
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except RepositoryScanError as error:

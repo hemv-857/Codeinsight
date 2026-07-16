@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     environment: Literal["development", "test", "production"] = Field(default="development")
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(default="INFO")
     repository_clone_timeout_seconds: PositiveInt = Field(default=300)
+    metadata_database_path: Path = Field(default=Path("data/forge-ai.sqlite3"))
     repository_storage_path: Path = Field(default=Path("data/repositories"))
     repository_zip_max_bytes: PositiveInt = Field(default=100 * 1024 * 1024)
     version: str = Field(default="0.1.0")

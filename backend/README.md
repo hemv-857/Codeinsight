@@ -15,6 +15,7 @@ Configuration is loaded from environment variables prefixed with `FORGE_AI_`.
 - `FORGE_AI_APP_NAME`
 - `FORGE_AI_ENVIRONMENT`
 - `FORGE_AI_LOG_LEVEL`
+- `FORGE_AI_METADATA_DATABASE_PATH`
 - `FORGE_AI_REPOSITORY_CLONE_TIMEOUT_SECONDS`
 - `FORGE_AI_REPOSITORY_STORAGE_PATH`
 - `FORGE_AI_REPOSITORY_ZIP_MAX_BYTES`
@@ -29,3 +30,6 @@ Repository import endpoints:
 - `GET /api/repositories/imports/{import_id}`
 - `POST /api/repositories/scan`
 - `GET /api/repositories/imports/{import_id}/scan`
+- `POST /api/repositories/metadata`
+- `GET /api/repositories/metadata/{repository_id}`
+- `GET /api/repositories/imports/{import_id}/metadata`
