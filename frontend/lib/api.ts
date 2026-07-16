@@ -505,13 +505,20 @@ export interface SecurityReview {
   stats: SecurityReviewStats;
 }
 
+interface ApiErrorPayload {
+  error?: unknown;
+  detail?: unknown;
+  request_id?: unknown;
+  status_code?: unknown;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
   const response = await fetch(`${API_BASE_URL}/api/health`);
 
   if (!response.ok) {
-    throw new Error(`Backend health check failed with status ${response.status}`);
+    throw new Error(await responseError(response, 'Backend health check failed'));
   }
 
   return response.json() as Promise<HealthResponse>;
@@ -525,7 +532,7 @@ export async function scanRepository(repositoryPath: string): Promise<Repository
   });
 
   if (!response.ok) {
-    throw new Error(`Repository scan failed with status ${response.status}`);
+    throw new Error(await responseError(response, 'Repository scan failed'));
   }
 
   return response.json() as Promise<RepositoryScanResult>;
@@ -535,7 +542,7 @@ export async function scanImportedRepository(importId: string): Promise<Reposito
   const response = await fetch(`${API_BASE_URL}/api/repositories/imports/${importId}/scan`);
 
   if (!response.ok) {
-    throw new Error(`Imported repository scan failed with status ${response.status}`);
+    throw new Error(await responseError(response, 'Imported repository scan failed'));
   }
 
   return response.json() as Promise<RepositoryScanResult>;
@@ -549,7 +556,7 @@ export async function buildDependencyGraph(repositoryPath: string): Promise<Depe
   });
 
   if (!response.ok) {
-    throw new Error(`Dependency graph build failed with status ${response.status}`);
+    throw new Error(await responseError(response, 'Dependency graph build failed'));
   }
 
   return response.json() as Promise<DependencyGraphResult>;
@@ -563,7 +570,7 @@ export async function buildImportedDependencyGraph(
   );
 
   if (!response.ok) {
-    throw new Error(`Imported dependency graph build failed with status ${response.status}`);
+    throw new Error(await responseError(response, 'Imported dependency graph build failed'));
   }
 
   return response.json() as Promise<DependencyGraphResult>;
@@ -1004,7 +1011,7 @@ export async function buildKnowledgeGraph(repositoryPath: string): Promise<Knowl
   });
 
   if (!response.ok) {
-    throw new Error(`Knowledge graph build failed with status ${response.status}`);
+    throw new Error(await responseError(response, 'Knowledge graph build failed'));
   }
 
   return response.json() as Promise<KnowledgeGraphResult>;
@@ -1016,7 +1023,7 @@ export async function buildImportedKnowledgeGraph(importId: string): Promise<Kno
   );
 
   if (!response.ok) {
-    throw new Error(`Imported knowledge graph build failed with status ${response.status}`);
+    throw new Error(await responseError(response, 'Imported knowledge graph build failed'));
   }
 
   return response.json() as Promise<KnowledgeGraphResult>;
@@ -1108,13 +1115,61 @@ export async function analyzeImportedTechnicalDebt(importId: string): Promise<Te
   return response.json() as Promise<TechnicalDebtReport>;
 }
 
-async function responseError(response: Response, fallback: string) {
+async function responseError(response: Response, fallback: string): Promise<string> {
+  const defaultMessage = `${fallback} with status ${response.status}`;
   try {
-    const body = (await response.json()) as { detail?: unknown };
-    return typeof body.detail === 'string'
-      ? body.detail
-      : `${fallback} with status ${response.status}`;
+    const body = (await response.json()) as ApiErrorPayload;
+    const detail = errorDetail(body.detail);
+    const error = typeof body.error === 'string' ? body.error.replaceAll('_', ' ') : null;
+    const requestId = typeof body.request_id === 'string' ? body.request_id : null;
+    const message = detail ?? error ?? defaultMessage;
+    return requestId ? `${message} (request ${requestId})` : message;
   } catch {
-    return `${fallback} with status ${response.status}`;
+    return defaultMessage;
   }
+}
+
+function errorDetail(detail: unknown): string | null {
+  if (typeof detail === 'string') {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => validationMessage(item))
+      .filter((message): message is string => Boolean(message));
+    return messages.length > 0 ? messages.join('; ') : null;
+  }
+
+  if (isObject(detail) && typeof detail.message === 'string') {
+    return detail.message;
+  }
+
+  return null;
+}
+
+function validationMessage(item: unknown): string | null {
+  if (!isObject(item)) {
+    return null;
+  }
+
+  const message = typeof item.msg === 'string' ? item.msg : null;
+  if (message === null) {
+    return null;
+  }
+
+  if (!Array.isArray(item.loc)) {
+    return message;
+  }
+
+  const location = item.loc
+    .filter((part): part is string | number => typeof part === 'string' || typeof part === 'number')
+    .filter((part) => !['body', 'query', 'path'].includes(String(part)))
+    .join('.');
+
+  return location ? `${location}: ${message}` : message;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }

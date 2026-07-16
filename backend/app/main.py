@@ -6,6 +6,7 @@ from backend.app.api.routes.health import router as health_router
 from backend.app.api.routes.repositories import router as repositories_router
 from backend.app.core.config import Settings, get_cached_settings
 from backend.app.core.dependencies import get_settings
+from backend.app.core.errors import register_exception_handlers
 from backend.app.core.logging import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return resolved_settings
 
     app.dependency_overrides[get_settings] = provide_settings
+    register_exception_handlers(app)
     app.include_router(health_router)
     app.include_router(repositories_router)
 

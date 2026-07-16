@@ -70,6 +70,15 @@ def test_frontend_dashboard_has_accessibility_landmarks() -> None:
     assert "aria-live" in health_source
 
 
+def test_frontend_api_uses_structured_error_envelopes() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+
+    assert "interface ApiErrorPayload" in api_source
+    assert "body.request_id" in api_source
+    assert "errorDetail(body.detail)" in api_source
+    assert "with status ${response.status}`);" not in api_source
+
+
 def test_frontend_repository_explorer_uses_scan_apis() -> None:
     api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
     explorer_source = (ROOT / "frontend" / "components" / "repository-explorer.tsx").read_text()

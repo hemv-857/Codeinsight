@@ -37,6 +37,22 @@ Configuration is loaded from environment variables prefixed with `FORGE_AI_`.
 
 The health endpoint is available at `/api/health`.
 
+API errors use a stable JSON envelope and include an `X-Request-ID` response
+header for correlation:
+
+```json
+{
+  "error": "validation_error",
+  "detail": "repository_path: Field required",
+  "status_code": 422,
+  "request_id": "request-id"
+}
+```
+
+Clients may provide `X-Request-ID`; otherwise the backend generates one.
+Unexpected failures are logged with the same request ID and returned as a
+sanitized `internal_server_error` response.
+
 Repository import endpoints:
 
 - `POST /api/repositories/import`
