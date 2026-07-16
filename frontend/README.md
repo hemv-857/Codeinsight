@@ -14,6 +14,8 @@ Next.js application code for Forge AI.
 
 The first screen is the dark-mode Forge AI dashboard with backend health, a repository explorer, repository search, workflow status, and graph panels.
 
+The dashboard includes a keyboard skip link, labelled regions, visible focus styles, reduced-motion handling, switch semantics for graph controls, and polite health-status announcements.
+
 The repository explorer can scan a backend-accessible local repository path or load a previously imported repository by import ID.
 
 The repository search panel can index vectors for a repository path or import ID, then run hybrid retrieval with vector, keyword, and graph scores.

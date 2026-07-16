@@ -18,6 +18,8 @@ export function HealthBadge() {
 
   return (
     <div
+      role="status"
+      aria-live="polite"
       className={cn(
         'flex h-10 items-center gap-2 rounded-md border px-3 text-sm',
         isHealthy

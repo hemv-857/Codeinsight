@@ -53,6 +53,23 @@ def test_frontend_dashboard_files_exist() -> None:
     assert missing_paths == []
 
 
+def test_frontend_dashboard_has_accessibility_landmarks() -> None:
+    dashboard_source = (ROOT / "frontend" / "components" / "dashboard.tsx").read_text()
+    styles_source = (ROOT / "frontend" / "app" / "globals.css").read_text()
+    toggle_source = (ROOT / "frontend" / "components" / "graph-control-toggle.tsx").read_text()
+    health_source = (ROOT / "frontend" / "components" / "health-badge.tsx").read_text()
+
+    assert 'href="#dashboard-content"' in dashboard_source
+    assert 'id="dashboard-content"' in dashboard_source
+    assert "aria-labelledby" in dashboard_source
+    assert "skip-link" in styles_source
+    assert "prefers-reduced-motion" in styles_source
+    assert 'role="switch"' in toggle_source
+    assert "aria-checked" in toggle_source
+    assert 'role="status"' in health_source
+    assert "aria-live" in health_source
+
+
 def test_frontend_repository_explorer_uses_scan_apis() -> None:
     api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
     explorer_source = (ROOT / "frontend" / "components" / "repository-explorer.tsx").read_text()

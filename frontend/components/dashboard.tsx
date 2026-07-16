@@ -55,284 +55,335 @@ export function Dashboard() {
   ];
 
   return (
-    <main className="min-h-screen px-5 py-6 text-foreground sm:px-8 lg:px-10">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-        <header className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-medium text-accent">Forge AI</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-normal sm:text-4xl">
-              Software system map
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <HealthBadge />
-            <Button>
-              <GitBranch className="h-4 w-4" />
-              Import repository
-            </Button>
-          </div>
-        </header>
+    <>
+      <a href="#dashboard-content" className="skip-link">
+        Skip to dashboard content
+      </a>
+      <main
+        id="dashboard-content"
+        tabIndex={-1}
+        className="min-h-screen px-5 py-6 text-foreground sm:px-8 lg:px-10"
+      >
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+          <header className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-medium text-accent">Forge AI</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-normal sm:text-4xl">
+                Software system map
+              </h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <HealthBadge />
+              <Button>
+                <GitBranch className="h-4 w-4" />
+                Import repository
+              </Button>
+            </div>
+          </header>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          {metrics.map((metric) => (
-            <motion.div
-              key={metric.label}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
+          <section aria-label="Repository metrics" className="grid gap-4 md:grid-cols-3">
+            {metrics.map((metric) => (
+              <motion.div
+                key={metric.label}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-lg border border-border bg-card p-5"
+              >
+                <p className="text-sm text-muted-foreground">{metric.label}</p>
+                <p className="mt-3 text-3xl font-semibold">{metric.value}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{metric.detail}</p>
+              </motion.div>
+            ))}
+          </section>
+
+          <section aria-labelledby="repository-explorer-heading" className="space-y-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 id="repository-explorer-heading" className="text-xl font-semibold">
+                  Repository Explorer
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Scan a local path or load an imported repository to inspect files, folders, and
+                  languages.
+                </p>
+              </div>
+              {scan ? (
+                <p className="max-w-full truncate text-sm text-muted-foreground">
+                  {scan.repository_path}
+                </p>
+              ) : null}
+            </div>
+            <RepositoryExplorer onScanLoaded={setScan} />
+          </section>
+
+          <section aria-labelledby="repository-search-heading" className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 id="repository-search-heading" className="text-xl font-semibold">
+                  Repository Search
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Search indexed code chunks with vector, keyword, and graph ranking.
+                </p>
+              </div>
+              <Search className="h-5 w-5 text-accent" />
+            </div>
+            <RepositorySearchPanel scan={scan} />
+          </section>
+
+          <section
+            aria-label="Repository intelligence tools"
+            className="grid gap-6 xl:grid-cols-[1fr_320px]"
+          >
+            <div className="space-y-6">
+              <section aria-labelledby="technical-debt-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="technical-debt-heading" className="text-xl font-semibold">
+                      Technical Debt
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Analyze maintainability risks from parsed code and dependency structure.
+                    </p>
+                  </div>
+                  <Activity className="h-5 w-5 text-accent" />
+                </div>
+                <TechnicalDebtPanel scan={scan} />
+              </section>
+
+              <section aria-labelledby="circular-dependencies-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="circular-dependencies-heading" className="text-xl font-semibold">
+                      Circular Dependencies
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Detect import cycles and inspect the files participating in each loop.
+                    </p>
+                  </div>
+                  <GitBranch className="h-5 w-5 text-accent" />
+                </div>
+                <CircularDependenciesPanel scan={scan} />
+              </section>
+
+              <section aria-labelledby="dead-code-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="dead-code-heading" className="text-xl font-semibold">
+                      Dead Code
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Find unreferenced files and uncalled functions from repository graphs.
+                    </p>
+                  </div>
+                  <Search className="h-5 w-5 text-accent" />
+                </div>
+                <DeadCodePanel scan={scan} />
+              </section>
+
+              <section aria-labelledby="architecture-violations-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="architecture-violations-heading" className="text-xl font-semibold">
+                      Architecture Violations
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Flag layer-boundary imports that cut across the system architecture.
+                    </p>
+                  </div>
+                  <Activity className="h-5 w-5 text-accent" />
+                </div>
+                <ArchitectureViolationsPanel scan={scan} />
+              </section>
+
+              <section aria-labelledby="stack-trace-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="stack-trace-heading" className="text-xl font-semibold">
+                      Stack Trace Parser
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Extract files, functions, lines, and error metadata from runtime traces.
+                    </p>
+                  </div>
+                  <Activity className="h-5 w-5 text-accent" />
+                </div>
+                <StackTracePanel />
+              </section>
+
+              <section aria-labelledby="bug-impact-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="bug-impact-heading" className="text-xl font-semibold">
+                      Bug Impact
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Predict likely root cause and affected files from stack traces and imports.
+                    </p>
+                  </div>
+                  <Activity className="h-5 w-5 text-accent" />
+                </div>
+                <BugImpactPanel scan={scan} />
+              </section>
+
+              <section aria-labelledby="readme-generator-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="readme-generator-heading" className="text-xl font-semibold">
+                      README Generator
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Generate repository-grounded Markdown documentation from indexed code facts.
+                    </p>
+                  </div>
+                  <FileText className="h-5 w-5 text-accent" />
+                </div>
+                <ReadmeGeneratorPanel scan={scan} />
+              </section>
+
+              <section aria-labelledby="architecture-docs-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="architecture-docs-heading" className="text-xl font-semibold">
+                      Architecture Docs
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Export architecture overview, components, flows, observations, and evidence.
+                    </p>
+                  </div>
+                  <FileText className="h-5 w-5 text-accent" />
+                </div>
+                <ArchitectureDocsPanel scan={scan} />
+              </section>
+
+              <section aria-labelledby="mermaid-diagrams-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="mermaid-diagrams-heading" className="text-xl font-semibold">
+                      Mermaid Diagrams
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Export architecture, dependency, and call-flow diagrams as Mermaid source.
+                    </p>
+                  </div>
+                  <FileText className="h-5 w-5 text-accent" />
+                </div>
+                <MermaidDiagramsPanel scan={scan} />
+              </section>
+
+              <section aria-labelledby="developer-onboarding-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="developer-onboarding-heading" className="text-xl font-semibold">
+                      Developer Onboarding
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Generate a first-day guide from repository facts, docs, and diagrams.
+                    </p>
+                  </div>
+                  <FileText className="h-5 w-5 text-accent" />
+                </div>
+                <DeveloperOnboardingPanel scan={scan} />
+              </section>
+
+              <section aria-labelledby="pr-review-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="pr-review-heading" className="text-xl font-semibold">
+                      PR Review
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Review changed files with repository graph, debt, and impact signals.
+                    </p>
+                  </div>
+                  <Activity className="h-5 w-5 text-accent" />
+                </div>
+                <PullRequestReviewPanel scan={scan} />
+              </section>
+
+              <section aria-labelledby="architecture-review-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="architecture-review-heading" className="text-xl font-semibold">
+                      Architecture Review
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Review changed files for architecture impact, layer spread, and boundary risk.
+                    </p>
+                  </div>
+                  <Activity className="h-5 w-5 text-accent" />
+                </div>
+                <ArchitectureReviewPanel scan={scan} />
+              </section>
+
+              <section aria-labelledby="security-review-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="security-review-heading" className="text-xl font-semibold">
+                      Security Review
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Review changed files for secret exposure, unsafe execution, and weak controls.
+                    </p>
+                  </div>
+                  <Activity className="h-5 w-5 text-accent" />
+                </div>
+                <SecurityReviewPanel scan={scan} />
+              </section>
+
+              <section aria-labelledby="dependency-graph-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="dependency-graph-heading" className="text-xl font-semibold">
+                      Dependency Graph
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Build the file-level dependency graph from parsed repository imports.
+                    </p>
+                  </div>
+                  <Network className="h-5 w-5 text-accent" />
+                </div>
+                <DependencyGraphPanel scan={scan} />
+              </section>
+
+              <section aria-labelledby="knowledge-graph-heading" className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 id="knowledge-graph-heading" className="text-xl font-semibold">
+                      Knowledge Graph
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Persist the repository architecture graph for AI and graph traversal.
+                    </p>
+                  </div>
+                  <Network className="h-5 w-5 text-accent" />
+                </div>
+                <KnowledgeGraphPanel scan={scan} />
+              </section>
+            </div>
+
+            <aside
+              aria-labelledby="indexing-workflow-heading"
               className="rounded-lg border border-border bg-card p-5"
             >
-              <p className="text-sm text-muted-foreground">{metric.label}</p>
-              <p className="mt-3 text-3xl font-semibold">{metric.value}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{metric.detail}</p>
-            </motion.div>
-          ))}
-        </section>
-
-        <section className="space-y-4">
-          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">Repository Explorer</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Scan a local path or load an imported repository to inspect files, folders, and
-                languages.
-              </p>
-            </div>
-            {scan ? (
-              <p className="max-w-full truncate text-sm text-muted-foreground">
-                {scan.repository_path}
-              </p>
-            ) : null}
-          </div>
-          <RepositoryExplorer onScanLoaded={setScan} />
-        </section>
-
-        <section className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold">Repository Search</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Search indexed code chunks with vector, keyword, and graph ranking.
-              </p>
-            </div>
-            <Search className="h-5 w-5 text-accent" />
-          </div>
-          <RepositorySearchPanel scan={scan} />
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-[1fr_320px]">
-          <div className="space-y-6">
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Technical Debt</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Analyze maintainability risks from parsed code and dependency structure.
-                  </p>
-                </div>
-                <Activity className="h-5 w-5 text-accent" />
+              <div className="flex items-center gap-3">
+                <Activity className="h-5 w-5 text-primary" />
+                <h2 id="indexing-workflow-heading" className="text-lg font-semibold">
+                  Indexing Workflow
+                </h2>
               </div>
-              <TechnicalDebtPanel scan={scan} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Circular Dependencies</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Detect import cycles and inspect the files participating in each loop.
-                  </p>
-                </div>
-                <GitBranch className="h-5 w-5 text-accent" />
+              <div className="mt-5 space-y-3">
+                {workflow.map((item) => (
+                  <div key={item.label} className="flex items-center gap-3 rounded-md bg-muted p-3">
+                    <item.icon className="h-4 w-4 text-accent" />
+                    <span className="text-sm">{item.label}</span>
+                  </div>
+                ))}
               </div>
-              <CircularDependenciesPanel scan={scan} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Dead Code</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Find unreferenced files and uncalled functions from repository graphs.
-                  </p>
-                </div>
-                <Search className="h-5 w-5 text-accent" />
-              </div>
-              <DeadCodePanel scan={scan} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Architecture Violations</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Flag layer-boundary imports that cut across the system architecture.
-                  </p>
-                </div>
-                <Activity className="h-5 w-5 text-accent" />
-              </div>
-              <ArchitectureViolationsPanel scan={scan} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Stack Trace Parser</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Extract files, functions, lines, and error metadata from runtime traces.
-                  </p>
-                </div>
-                <Activity className="h-5 w-5 text-accent" />
-              </div>
-              <StackTracePanel />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Bug Impact</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Predict likely root cause and affected files from stack traces and imports.
-                  </p>
-                </div>
-                <Activity className="h-5 w-5 text-accent" />
-              </div>
-              <BugImpactPanel scan={scan} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">README Generator</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Generate repository-grounded Markdown documentation from indexed code facts.
-                  </p>
-                </div>
-                <FileText className="h-5 w-5 text-accent" />
-              </div>
-              <ReadmeGeneratorPanel scan={scan} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Architecture Docs</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Export architecture overview, components, flows, observations, and evidence.
-                  </p>
-                </div>
-                <FileText className="h-5 w-5 text-accent" />
-              </div>
-              <ArchitectureDocsPanel scan={scan} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Mermaid Diagrams</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Export architecture, dependency, and call-flow diagrams as Mermaid source.
-                  </p>
-                </div>
-                <FileText className="h-5 w-5 text-accent" />
-              </div>
-              <MermaidDiagramsPanel scan={scan} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Developer Onboarding</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Generate a first-day guide from repository facts, docs, and diagrams.
-                  </p>
-                </div>
-                <FileText className="h-5 w-5 text-accent" />
-              </div>
-              <DeveloperOnboardingPanel scan={scan} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">PR Review</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Review changed files with repository graph, debt, and impact signals.
-                  </p>
-                </div>
-                <Activity className="h-5 w-5 text-accent" />
-              </div>
-              <PullRequestReviewPanel scan={scan} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Architecture Review</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Review changed files for architecture impact, layer spread, and boundary risk.
-                  </p>
-                </div>
-                <Activity className="h-5 w-5 text-accent" />
-              </div>
-              <ArchitectureReviewPanel scan={scan} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Security Review</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Review changed files for secret exposure, unsafe execution, and weak controls.
-                  </p>
-                </div>
-                <Activity className="h-5 w-5 text-accent" />
-              </div>
-              <SecurityReviewPanel scan={scan} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Dependency Graph</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Build the file-level dependency graph from parsed repository imports.
-                  </p>
-                </div>
-                <Network className="h-5 w-5 text-accent" />
-              </div>
-              <DependencyGraphPanel scan={scan} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Knowledge Graph</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Persist the repository architecture graph for AI and graph traversal.
-                  </p>
-                </div>
-                <Network className="h-5 w-5 text-accent" />
-              </div>
-              <KnowledgeGraphPanel scan={scan} />
-            </section>
-          </div>
-
-          <aside className="rounded-lg border border-border bg-card p-5">
-            <div className="flex items-center gap-3">
-              <Activity className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">Indexing Workflow</h2>
-            </div>
-            <div className="mt-5 space-y-3">
-              {workflow.map((item) => (
-                <div key={item.label} className="flex items-center gap-3 rounded-md bg-muted p-3">
-                  <item.icon className="h-4 w-4 text-accent" />
-                  <span className="text-sm">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </aside>
-        </section>
-      </div>
-    </main>
+            </aside>
+          </section>
+        </div>
+      </main>
+    </>
   );
 }

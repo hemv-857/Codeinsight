@@ -9,6 +9,9 @@ export function GraphControlToggle({ label, enabled, onChange }: GraphControlTog
     <label className="inline-flex h-9 items-center gap-2 rounded-md bg-muted px-3 text-sm text-muted-foreground">
       <input
         type="checkbox"
+        role="switch"
+        aria-label={label}
+        aria-checked={enabled}
         checked={enabled}
         onChange={(event) => onChange(event.target.checked)}
         className="h-4 w-4 accent-primary"
