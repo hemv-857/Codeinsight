@@ -2,7 +2,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from sqlalchemy import Column, Integer, MetaData, String, Table, Text, delete, insert, select
+from sqlalchemy import Column, Integer, MetaData, String, Table, Text, delete, insert, select, text
 
 from backend.app.database.connection import create_sqlite_engine
 from backend.app.services.embedding import ChunkEmbedding, RepositoryEmbeddings
@@ -21,6 +21,7 @@ vector_embeddings_table = Table(
     Column("language", String, nullable=False),
     Column("start_line", Integer, nullable=False),
     Column("end_line", Integer, nullable=False),
+    Column("content", Text, nullable=False),
     Column("symbol_kind", String),
     Column("symbol_name", String),
     Column("symbol_parent", String),
@@ -38,6 +39,22 @@ class VectorStoreRepository:
 
     def initialize(self) -> None:
         metadata.create_all(self.engine)
+        self._ensure_content_column()
+
+    def _ensure_content_column(self) -> None:
+        with self.engine.begin() as connection:
+            columns = {
+                str(row["name"])
+                for row in connection.execute(text("PRAGMA table_info(vector_embeddings)"))
+                .mappings()
+                .all()
+            }
+            if "content" not in columns:
+                connection.execute(
+                    text(
+                        "ALTER TABLE vector_embeddings ADD COLUMN content TEXT NOT NULL DEFAULT ''"
+                    )
+                )
 
     def replace(self, embeddings: RepositoryEmbeddings) -> int:
         stored_at = datetime.now(UTC).isoformat()
@@ -61,6 +78,7 @@ class VectorStoreRepository:
                             "language": embedding.language,
                             "start_line": embedding.start_line,
                             "end_line": embedding.end_line,
+                            "content": embedding.content,
                             "symbol_kind": embedding.symbol_kind,
                             "symbol_name": embedding.symbol_name,
                             "symbol_parent": embedding.symbol_parent,
@@ -92,6 +110,7 @@ class VectorStoreRepository:
                 language=str(row["language"]),
                 start_line=int(row["start_line"]),
                 end_line=int(row["end_line"]),
+                content=str(row["content"]),
                 symbol_kind=str(row["symbol_kind"]) if row["symbol_kind"] is not None else None,
                 symbol_name=str(row["symbol_name"]) if row["symbol_name"] is not None else None,
                 symbol_parent=(

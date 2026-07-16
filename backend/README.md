@@ -60,6 +60,8 @@ Repository import endpoints:
 - `GET /api/repositories/imports/{import_id}/embeddings`
 - `POST /api/repositories/vector-store`
 - `GET /api/repositories/imports/{import_id}/vector-store`
+- `POST /api/repositories/retrieve`
+- `POST /api/repositories/imports/{import_id}/retrieve`
 
 Parse responses include compact AST metadata and extracted source symbols.
 Supported parser languages are C, C++, Go, Java, JavaScript, Python, Rust, and TypeScript.
@@ -80,3 +82,6 @@ For demos without an OpenAI key, set `FORGE_AI_EMBEDDING_PROVIDER=ollama`, run
 Ollama locally, and use `FORGE_AI_OLLAMA_EMBEDDING_MODEL=nomic-embed-text`.
 Vector storage endpoints persist generated embeddings to SQLite and return compact
 storage statistics instead of full vector payloads.
+Hybrid retrieval endpoints search stored vectors with semantic similarity, keyword
+overlap, and dependency-graph context. Run vector storage for the repository before
+calling retrieval.

@@ -20,6 +20,7 @@ from backend.app.core.dependencies import (
     get_call_graph_service,
     get_dependency_graph_service,
     get_embedding_service,
+    get_hybrid_retrieval_service,
     get_knowledge_graph_service,
     get_metadata_service,
     get_repository_chunker_service,
@@ -72,6 +73,13 @@ from backend.app.schemas.repository_chunk import (
 )
 from backend.app.schemas.repository_import import RepositoryImportRequest, RepositoryImportResponse
 from backend.app.schemas.repository_scan import RepositoryScanRequest, RepositoryScanResult
+from backend.app.schemas.retrieval import (
+    HybridRetrievalRequest,
+    HybridRetrievalResponse,
+    HybridRetrievalResultResponse,
+    HybridRetrievalStatsResponse,
+    ImportedHybridRetrievalRequest,
+)
 from backend.app.schemas.vector_store import VectorStoreRequest, VectorStoreResponse
 from backend.app.services.embedding import EmbeddingError, EmbeddingService, RepositoryEmbeddings
 from backend.app.services.metadata import MetadataService
@@ -82,6 +90,7 @@ from backend.app.services.repository_chunker import (
 )
 from backend.app.services.repository_import import RepositoryImportError, RepositoryImportService
 from backend.app.services.repository_scanner import RepositoryScanError, RepositoryScannerService
+from backend.app.services.retrieval import HybridRetrieval, HybridRetrievalService, RetrievalError
 from backend.app.services.vector_store import VectorStoreResult, VectorStoreService
 
 router = APIRouter(prefix="/api/repositories", tags=["repositories"])
@@ -131,6 +140,40 @@ def to_vector_store_response(result: VectorStoreResult) -> VectorStoreResponse:
         dimensions=result.dimensions,
         backend=result.backend,
         skipped_file_count=result.skipped_file_count,
+    )
+
+
+def to_hybrid_retrieval_response(result: HybridRetrieval) -> HybridRetrievalResponse:
+    """Convert hybrid retrieval output into an API response."""
+    return HybridRetrievalResponse(
+        repository_path=result.repository_path,
+        query=result.query,
+        model=result.model,
+        results=[
+            HybridRetrievalResultResponse(
+                chunk_id=item.chunk_id,
+                path=item.path,
+                kind=item.kind,
+                language=item.language,
+                start_line=item.start_line,
+                end_line=item.end_line,
+                content=item.content,
+                score=item.score,
+                vector_score=item.vector_score,
+                keyword_score=item.keyword_score,
+                graph_score=item.graph_score,
+                related_paths=list(item.related_paths),
+                symbol_kind=item.symbol_kind,
+                symbol_name=item.symbol_name,
+                symbol_parent=item.symbol_parent,
+            )
+            for item in result.results
+        ],
+        stats=HybridRetrievalStatsResponse(
+            result_count=result.stats.result_count,
+            searched_embedding_count=result.stats.searched_embedding_count,
+            dimensions=result.stats.dimensions,
+        ),
     )
 
 
@@ -571,6 +614,49 @@ def store_imported_repository_vectors(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except (RepositoryScanError, RepositoryChunkError, EmbeddingError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/retrieve", response_model=HybridRetrievalResponse)
+def retrieve_repository_context(
+    request: HybridRetrievalRequest,
+    service: Annotated[HybridRetrievalService, Depends(get_hybrid_retrieval_service)],
+) -> HybridRetrievalResponse:
+    """Retrieve relevant repository chunks using vector, keyword, and graph signals."""
+    try:
+        return to_hybrid_retrieval_response(
+            service.retrieve(
+                repository_path=request.repository_path,
+                query=request.query,
+                limit=request.limit,
+            )
+        )
+    except (EmbeddingError, RetrievalError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/imports/{import_id}/retrieve", response_model=HybridRetrievalResponse)
+def retrieve_imported_repository_context(
+    import_id: str,
+    request: ImportedHybridRetrievalRequest,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[HybridRetrievalService, Depends(get_hybrid_retrieval_service)],
+) -> HybridRetrievalResponse:
+    """Retrieve relevant chunks for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise RetrievalError("Repository import has no local path to retrieve.")
+        return to_hybrid_retrieval_response(
+            service.retrieve(
+                repository_path=Path(imported_repository.repository_path),
+                query=request.query,
+                limit=request.limit,
+            )
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (EmbeddingError, RetrievalError) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

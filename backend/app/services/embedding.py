@@ -85,6 +85,7 @@ class ChunkEmbedding:
     language: str
     start_line: int
     end_line: int
+    content: str
     embedding: tuple[float, ...]
     symbol_kind: str | None = None
     symbol_name: str | None = None
@@ -177,6 +178,7 @@ class EmbeddingService:
             language=chunk.language,
             start_line=chunk.start_line,
             end_line=chunk.end_line,
+            content=chunk.content,
             symbol_kind=chunk.symbol_kind,
             symbol_name=chunk.symbol_name,
             symbol_parent=chunk.symbol_parent,

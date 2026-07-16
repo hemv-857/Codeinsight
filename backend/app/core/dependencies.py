@@ -26,6 +26,7 @@ from backend.app.services.metadata import MetadataService
 from backend.app.services.repository_chunker import RepositoryChunkerService
 from backend.app.services.repository_import import RepositoryImportService
 from backend.app.services.repository_scanner import RepositoryScannerService
+from backend.app.services.retrieval import HybridRetrievalService
 from backend.app.services.vector_store import VectorStoreService
 
 
@@ -166,6 +167,20 @@ def get_vector_store_service(
     return VectorStoreService(
         embedding_service=embedding_service,
         repository=get_cached_vector_store_repository(str(settings.vector_database_path)),
+    )
+
+
+def get_hybrid_retrieval_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    embedding_service: Annotated[EmbeddingService, Depends(get_embedding_service)],
+    dependency_graph: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
+) -> HybridRetrievalService:
+    """Provide hybrid retrieval operations."""
+    return HybridRetrievalService(
+        repository=get_cached_vector_store_repository(str(settings.vector_database_path)),
+        embedding_client=embedding_service.client,
+        dependency_graph=dependency_graph,
+        model=embedding_service.model,
     )
 
 
