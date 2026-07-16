@@ -121,7 +121,7 @@ language, error type, and message from common Python, JavaScript, Java, and Go
 trace formats.
 Bug impact endpoints combine parsed stack traces, changed files, and dependency
 graph evidence to predict likely root cause, impacted files, confidence,
-recommendations, and a provisional risk score.
+recommendations, and an explainable risk score with weighted factors.
 Repository summary endpoints generate grounded repository overviews from scanner,
 parser, dependency graph, call graph, and vector index metadata.
 Architecture explanation endpoints turn those grounded facts into component,

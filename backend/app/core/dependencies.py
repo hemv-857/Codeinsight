@@ -36,6 +36,7 @@ from backend.app.services.repository_qa import RepositoryQAService
 from backend.app.services.repository_scanner import RepositoryScannerService
 from backend.app.services.repository_summary import RepositorySummaryService
 from backend.app.services.retrieval import HybridRetrievalService
+from backend.app.services.risk_scoring import RiskScoringService
 from backend.app.services.stack_trace import StackTraceParserService
 from backend.app.services.technical_debt import TechnicalDebtService
 from backend.app.services.vector_store import VectorStoreService
@@ -253,16 +254,24 @@ def get_stack_trace_parser_service() -> StackTraceParserService:
     return StackTraceParserService()
 
 
+@lru_cache(maxsize=1)
+def get_risk_scoring_service() -> RiskScoringService:
+    """Provide risk scoring operations."""
+    return RiskScoringService()
+
+
 def get_bug_impact_service(
     scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
     dependency_graph: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
     stack_trace_parser: Annotated[StackTraceParserService, Depends(get_stack_trace_parser_service)],
+    risk_scoring: Annotated[RiskScoringService, Depends(get_risk_scoring_service)],
 ) -> BugImpactService:
     """Provide bug impact prediction operations."""
     return BugImpactService(
         scanner=scanner,
         dependency_graph=dependency_graph,
         stack_trace_parser=stack_trace_parser,
+        risk_scoring=risk_scoring,
     )
 
 

@@ -155,6 +155,10 @@ export function BugImpactPanel({ scan }: BugImpactPanelProps) {
               <Stat label="Frames" value={prediction.stats.matched_frame_count} />
               <Stat label="Conf" value={Math.round(prediction.stats.confidence * 100)} />
             </div>
+            <div className="rounded-md bg-muted p-3 text-sm">
+              <p className="text-xs uppercase text-muted-foreground">Risk Level</p>
+              <p className="mt-1 font-medium uppercase">{prediction.risk.level}</p>
+            </div>
             {prediction.root_cause ? (
               <div className="rounded-md bg-muted p-3 text-sm">
                 <p className="text-xs uppercase text-muted-foreground">Root Cause</p>
@@ -178,6 +182,17 @@ export function BugImpactPanel({ scan }: BugImpactPanelProps) {
                 ))}
               </div>
             ) : null}
+            <div className="space-y-2 border-t border-border p-4">
+              {prediction.risk.factors.map((factor) => (
+                <div key={factor.name} className="rounded-md bg-muted p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium">{factor.name.replaceAll('_', ' ')}</p>
+                    <p className="text-xs text-accent">{factor.score}</p>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{factor.description}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       ) : (

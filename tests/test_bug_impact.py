@@ -5,6 +5,7 @@ from backend.app.core.config import Settings
 from backend.app.main import create_app
 from backend.app.services.bug_impact import BugImpactService
 from backend.app.services.repository_scanner import RepositoryScannerService
+from backend.app.services.risk_scoring import RiskScoringService
 from backend.app.services.stack_trace import StackTraceParserService
 from fastapi.testclient import TestClient
 from graph.dependency_graph import DependencyGraphService
@@ -62,6 +63,7 @@ def create_service() -> BugImpactService:
         scanner=scanner,
         dependency_graph=DependencyGraphService(scanner=scanner, parser=parser),
         stack_trace_parser=StackTraceParserService(),
+        risk_scoring=RiskScoringService(),
     )
 
 
@@ -87,7 +89,9 @@ def test_bug_impact_service_predicts_root_cause_and_neighbors(tmp_path: Path) ->
     assert "api/checkout.py" in impacted_paths
     assert "services/gateway.py" in impacted_paths
     assert prediction.stats.risk_score > 20
+    assert prediction.stats.risk_level in {"medium", "high", "critical"}
     assert prediction.stats.confidence > 0.5
+    assert prediction.risk.factors
 
 
 def test_bug_impact_api_for_repository_path(tmp_path: Path) -> None:
@@ -103,6 +107,7 @@ def test_bug_impact_api_for_repository_path(tmp_path: Path) -> None:
     body = response.json()
     assert body["root_cause"]["path"] == "services/payment.py"
     assert body["stats"]["impacted_file_count"] >= 3
+    assert body["risk"]["factors"][0]["name"] == "stack_trace_match"
 
 
 def test_bug_impact_api_for_imported_repository(tmp_path: Path) -> None:

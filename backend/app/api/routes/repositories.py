@@ -145,6 +145,7 @@ from backend.app.schemas.retrieval import (
     HybridRetrievalStatsResponse,
     ImportedHybridRetrievalRequest,
 )
+from backend.app.schemas.risk_scoring import RiskFactorResponse, RiskScoreResponse
 from backend.app.schemas.stack_trace import (
     StackTraceFrameResponse,
     StackTraceParseRequest,
@@ -566,12 +567,27 @@ def to_bug_impact_response(result: BugImpactPrediction) -> BugImpactResponse:
         ],
         recommendations=list(result.recommendations),
         parsed_trace=to_stack_trace_response(result.parsed_trace),
+        risk=RiskScoreResponse(
+            score=result.risk.score,
+            level=result.risk.level,
+            confidence=result.risk.confidence,
+            factors=[
+                RiskFactorResponse(
+                    name=factor.name,
+                    score=factor.score,
+                    weight=factor.weight,
+                    description=factor.description,
+                )
+                for factor in result.risk.factors
+            ],
+        ),
         stats=BugImpactStatsResponse(
             frame_count=result.stats.frame_count,
             matched_frame_count=result.stats.matched_frame_count,
             impacted_file_count=result.stats.impacted_file_count,
             dependency_edge_count=result.stats.dependency_edge_count,
             risk_score=result.stats.risk_score,
+            risk_level=result.stats.risk_level,
             confidence=result.stats.confidence,
         ),
     )

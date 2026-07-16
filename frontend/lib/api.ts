@@ -277,7 +277,22 @@ export interface BugImpactStats {
   impacted_file_count: number;
   dependency_edge_count: number;
   risk_score: number;
+  risk_level: 'low' | 'medium' | 'high' | 'critical';
   confidence: number;
+}
+
+export interface RiskFactor {
+  name: string;
+  score: number;
+  weight: number;
+  description: string;
+}
+
+export interface RiskScore {
+  score: number;
+  level: 'low' | 'medium' | 'high' | 'critical';
+  confidence: number;
+  factors: RiskFactor[];
 }
 
 export interface BugImpactPrediction {
@@ -288,6 +303,7 @@ export interface BugImpactPrediction {
   impacted_files: ImpactedFile[];
   recommendations: string[];
   parsed_trace: ParsedStackTrace;
+  risk: RiskScore;
   stats: BugImpactStats;
 }
 

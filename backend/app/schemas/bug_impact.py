@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.app.schemas.risk_scoring import RiskLevelResponse, RiskScoreResponse
 from backend.app.schemas.stack_trace import StackTraceParseResponse
 
 
@@ -52,6 +53,7 @@ class BugImpactStatsResponse(BaseModel):
     impacted_file_count: int = Field(ge=0)
     dependency_edge_count: int = Field(ge=0)
     risk_score: int = Field(ge=0, le=100)
+    risk_level: RiskLevelResponse
     confidence: float = Field(ge=0, le=1)
 
     model_config = ConfigDict(frozen=True)
@@ -67,6 +69,7 @@ class BugImpactResponse(BaseModel):
     impacted_files: list[ImpactedFileResponse]
     recommendations: list[str]
     parsed_trace: StackTraceParseResponse
+    risk: RiskScoreResponse
     stats: BugImpactStatsResponse
 
     model_config = ConfigDict(frozen=True)

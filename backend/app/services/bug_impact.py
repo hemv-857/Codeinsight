@@ -5,6 +5,12 @@ from graph.dependency_graph import DependencyEdge, DependencyGraphError, Depende
 
 from backend.app.services.repository_import import RepositoryImportError
 from backend.app.services.repository_scanner import RepositoryScanError, RepositoryScannerService
+from backend.app.services.risk_scoring import (
+    RiskLevel,
+    RiskScore,
+    RiskScoringInput,
+    RiskScoringService,
+)
 from backend.app.services.stack_trace import (
     StackTrace,
     StackTraceParseError,
@@ -45,6 +51,7 @@ class BugImpactStats:
     impacted_file_count: int
     dependency_edge_count: int
     risk_score: int
+    risk_level: RiskLevel
     confidence: float
 
 
@@ -59,6 +66,7 @@ class BugImpactPrediction:
     impacted_files: tuple[ImpactedFile, ...]
     recommendations: tuple[str, ...]
     parsed_trace: StackTrace
+    risk: RiskScore
     stats: BugImpactStats
 
 
@@ -70,10 +78,12 @@ class BugImpactService:
         scanner: RepositoryScannerService,
         dependency_graph: DependencyGraphService,
         stack_trace_parser: StackTraceParserService,
+        risk_scoring: RiskScoringService,
     ) -> None:
         self.scanner = scanner
         self.dependency_graph = dependency_graph
         self.stack_trace_parser = stack_trace_parser
+        self.risk_scoring = risk_scoring
 
     def predict(
         self,
@@ -109,8 +119,16 @@ class BugImpactService:
             changed_files=normalized_changed,
             edges=graph.edges,
         )
-        risk_score = min(100, 20 + len(impacted_files) * 8 + len(matched_paths) * 6)
-        confidence = self._confidence(parsed_trace, matched_paths, root_cause)
+        risk = self.risk_scoring.score_bug_impact(
+            RiskScoringInput(
+                frame_count=parsed_trace.stats.frame_count,
+                matched_frame_count=len(matched_paths),
+                impacted_file_count=len(impacted_files),
+                dependency_edge_count=graph.stats.internal_dependency_count,
+                root_cause_score=root_cause.score if root_cause is not None else 0,
+                changed_file_match_count=len(normalized_changed),
+            )
+        )
         recommendations = self._recommendations(
             root_cause, impacted_files, error or parsed_trace.message
         )
@@ -122,13 +140,15 @@ class BugImpactService:
             impacted_files=impacted_files,
             recommendations=recommendations,
             parsed_trace=parsed_trace,
+            risk=risk,
             stats=BugImpactStats(
                 frame_count=parsed_trace.stats.frame_count,
                 matched_frame_count=len(matched_paths),
                 impacted_file_count=len(impacted_files),
                 dependency_edge_count=graph.stats.internal_dependency_count,
-                risk_score=risk_score,
-                confidence=confidence,
+                risk_score=risk.score,
+                risk_level=risk.level,
+                confidence=risk.confidence,
             ),
         )
 
@@ -211,18 +231,6 @@ class BugImpactService:
                     ),
                 )
         return tuple(sorted(impacted.values(), key=lambda item: (-item.score, item.path)))
-
-    def _confidence(
-        self,
-        parsed_trace: StackTrace,
-        matched_paths: tuple[str, ...],
-        root_cause: RootCauseCandidate | None,
-    ) -> float:
-        if root_cause is None:
-            return 0.2
-        if parsed_trace.stats.frame_count == 0:
-            return 0.35
-        return min(0.95, 0.45 + len(matched_paths) / parsed_trace.stats.frame_count * 0.4)
 
     def _recommendations(
         self,
