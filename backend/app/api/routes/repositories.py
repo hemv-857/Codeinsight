@@ -1,7 +1,10 @@
+import json
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import StreamingResponse
 from graph.call_graph import CallGraph, CallGraphError, CallGraphService
 from graph.dependency_graph import DependencyGraph, DependencyGraphError, DependencyGraphService
 from graph.knowledge_graph import (
@@ -180,6 +183,29 @@ def to_repository_qa_response(result: RepositoryQAAnswer) -> RepositoryQARespons
             for snippet in result.snippets
         ],
     )
+
+
+def qa_stream_events(service: RepositoryQAService, answer: RepositoryQAAnswer) -> Iterator[str]:
+    """Encode repository Q&A answer chunks as Server-Sent Events."""
+    yield sse_event(
+        "answer.start",
+        {
+            "repository_path": answer.repository_path,
+            "question": answer.question,
+            "mode": answer.mode,
+        },
+    )
+    for chunk in service.stream_answer(answer):
+        yield sse_event("answer.delta", {"text": chunk})
+    metadata = to_repository_qa_response(answer).model_dump(mode="json")
+    metadata.pop("answer")
+    yield sse_event("answer.metadata", metadata)
+    yield sse_event("answer.done", {})
+
+
+def sse_event(event: str, payload: dict[str, object]) -> str:
+    """Encode one Server-Sent Event frame."""
+    return f"event: {event}\ndata: {json.dumps(payload)}\n\n"
 
 
 def to_repository_embeddings_response(
@@ -894,6 +920,26 @@ def answer_repository_question(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 
+@router.post("/question/stream")
+def stream_repository_question(
+    request: RepositoryQARequest,
+    service: Annotated[RepositoryQAService, Depends(get_repository_qa_service)],
+) -> StreamingResponse:
+    """Stream a repository Q&A answer as Server-Sent Events."""
+    try:
+        answer = service.answer(
+            repository_path=request.repository_path,
+            question=request.question,
+            limit=request.limit,
+        )
+    except (RepositoryScanError, RepositorySummaryError, RepositoryQAError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+    return StreamingResponse(
+        qa_stream_events(service, answer),
+        media_type="text/event-stream",
+    )
+
+
 @router.post("/imports/{import_id}/question", response_model=RepositoryQAResponse)
 def answer_imported_repository_question(
     import_id: str,
@@ -917,6 +963,33 @@ def answer_imported_repository_question(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except (RepositoryScanError, RepositorySummaryError, RepositoryQAError) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/imports/{import_id}/question/stream")
+def stream_imported_repository_question(
+    import_id: str,
+    request: ImportedRepositoryQARequest,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[RepositoryQAService, Depends(get_repository_qa_service)],
+) -> StreamingResponse:
+    """Stream a repository Q&A answer for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise RepositoryQAError("Repository import has no local path to answer from.")
+        answer = service.answer(
+            repository_path=Path(imported_repository.repository_path),
+            question=request.question,
+            limit=request.limit,
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (RepositoryScanError, RepositorySummaryError, RepositoryQAError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+    return StreamingResponse(
+        qa_stream_events(service, answer),
+        media_type="text/event-stream",
+    )
 
 
 @router.post("/call-graph", response_model=CallGraphResponse)

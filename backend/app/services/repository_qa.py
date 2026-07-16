@@ -1,4 +1,5 @@
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -124,6 +125,11 @@ class RepositoryQAService:
             snippets=snippets,
         )
 
+    def stream_answer(self, answer: RepositoryQAAnswer) -> Iterator[str]:
+        """Yield answer text chunks for streaming transports."""
+        for word in answer.answer.split():
+            yield f"{word} "
+
     def _retrieval_snippets(
         self,
         repository_path: Path,
@@ -152,8 +158,24 @@ class RepositoryQAService:
     ) -> str:
         if snippets:
             files = ", ".join(dict.fromkeys(snippet.path for snippet in snippets))
-            return f"{overview} The most relevant indexed evidence is in {files}."
-        return f"{overview} No semantic index evidence was available for this question."
+            symbols = self._snippet_symbols(snippets)
+            symbol_text = f" The strongest matching symbols are {symbols}." if symbols else ""
+            return (
+                f"{overview} The most relevant indexed evidence is in {files}."
+                f"{symbol_text} Use the supporting snippets as the grounded source."
+            )
+        return (
+            f"{overview} I found repository structure, symbols, dependencies, and calls, "
+            "but no semantic index evidence was available for this question."
+        )
+
+    def _snippet_symbols(self, snippets: tuple[RepositoryQASnippet, ...]) -> str:
+        names = []
+        for snippet in snippets:
+            for token in self._tokens(snippet.content):
+                if "_" in token:
+                    names.append(token)
+        return ", ".join(tuple(dict.fromkeys(names))[:3])
 
     def _supporting_symbols(
         self,

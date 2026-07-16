@@ -141,7 +141,7 @@ def test_repository_qa_answers_from_summary_without_vectors(tmp_path: Path) -> N
     answer = service.answer(tmp_path, "What is this repository?")
 
     assert answer.mode == "summary"
-    assert "No semantic index evidence" in answer.answer
+    assert "semantic index evidence" in answer.answer
     assert "app/auth.py" in answer.supporting_files
     assert answer.supporting_symbols
 
@@ -171,6 +171,17 @@ def test_repository_qa_uses_retrieval_when_vectors_are_indexed(tmp_path: Path) -
     assert "app/auth.py" in answer.answer
 
 
+def test_repository_qa_streams_answer_chunks(tmp_path: Path) -> None:
+    create_repository_fixture(tmp_path)
+    service = create_qa_service(tmp_path.parent / f"{tmp_path.name}-vectors.sqlite3")
+    answer = service.answer(tmp_path, "What is this repository?")
+
+    chunks = tuple(service.stream_answer(answer))
+
+    assert chunks
+    assert "".join(chunks) == f"{answer.answer} "
+
+
 def test_repository_qa_api_for_repository_path(tmp_path: Path) -> None:
     create_repository_fixture(tmp_path)
     app = create_app(
@@ -188,6 +199,26 @@ def test_repository_qa_api_for_repository_path(tmp_path: Path) -> None:
     assert body["mode"] == "summary"
     assert body["supporting_files"]
     assert body["confidence"] > 0
+
+
+def test_repository_qa_stream_api_for_repository_path(tmp_path: Path) -> None:
+    create_repository_fixture(tmp_path)
+    app = create_app(
+        Settings(environment="test", vector_database_path=tmp_path / "vectors.sqlite3")
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/repositories/question/stream",
+        json={"repository_path": str(tmp_path), "question": "What is this repository?"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert "event: answer.start" in response.text
+    assert "event: answer.delta" in response.text
+    assert "event: answer.metadata" in response.text
+    assert "event: answer.done" in response.text
 
 
 def test_repository_qa_api_for_imported_repository(tmp_path: Path) -> None:
@@ -216,6 +247,34 @@ def test_repository_qa_api_for_imported_repository(tmp_path: Path) -> None:
     assert import_response.status_code == 201
     assert qa_response.status_code == 200
     assert qa_response.json()["supporting_files"]
+
+
+def test_repository_qa_stream_api_for_imported_repository(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    create_git_repository(source)
+    app = create_app(
+        Settings(
+            environment="test",
+            repository_storage_path=tmp_path / "imports",
+            vector_database_path=tmp_path / "vectors.sqlite3",
+        )
+    )
+    client = TestClient(app)
+
+    import_response = client.post(
+        "/api/repositories/import",
+        json={"source_type": "local", "source": str(source)},
+    )
+    import_id = import_response.json()["import_id"]
+    stream_response = client.post(
+        f"/api/repositories/imports/{import_id}/question/stream",
+        json={"question": "How does auth work?"},
+    )
+
+    assert import_response.status_code == 201
+    assert stream_response.status_code == 200
+    assert "event: answer.done" in stream_response.text
 
 
 def test_repository_qa_api_rejects_missing_repository(tmp_path: Path) -> None:

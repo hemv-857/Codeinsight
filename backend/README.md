@@ -68,6 +68,8 @@ Repository import endpoints:
 - `POST /api/repositories/imports/{import_id}/architecture-explanation`
 - `POST /api/repositories/question`
 - `POST /api/repositories/imports/{import_id}/question`
+- `POST /api/repositories/question/stream`
+- `POST /api/repositories/imports/{import_id}/question/stream`
 
 Parse responses include compact AST metadata and extracted source symbols.
 Supported parser languages are C, C++, Go, Java, JavaScript, Python, Rust, and TypeScript.
@@ -97,3 +99,5 @@ Architecture explanation endpoints turn those grounded facts into component,
 dependency-flow, call-flow, observation, evidence, and confidence sections.
 Repository Q&A endpoints answer questions from repository summaries, architecture
 explanations, and available hybrid retrieval evidence.
+Streaming Q&A endpoints return Server-Sent Events with `answer.start`,
+`answer.delta`, `answer.metadata`, and `answer.done` events.
