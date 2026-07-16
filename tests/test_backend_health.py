@@ -23,6 +23,21 @@ def test_health_endpoint_returns_backend_status() -> None:
     }
 
 
+def test_backend_allows_local_dashboard_cors_preflight() -> None:
+    client = TestClient(create_app(Settings(environment="test")))
+
+    response = client.options(
+        "/api/health",
+        headers={
+            "Origin": "http://localhost:3002",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3002"
+
+
 def test_openapi_uses_configured_metadata() -> None:
     settings = Settings(app_name="Forge AI Test", environment="test", version="1.2.3")
     client = TestClient(create_app(settings))

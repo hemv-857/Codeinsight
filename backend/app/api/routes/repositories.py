@@ -1163,7 +1163,7 @@ def get_repository_import(
 
 
 @router.post("/scan", response_model=RepositoryScanResult)
-def scan_repository(
+async def scan_repository(
     request: RepositoryScanRequest,
     service: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
 ) -> RepositoryScanResult:
@@ -1175,7 +1175,7 @@ def scan_repository(
 
 
 @router.get("/imports/{import_id}/scan", response_model=RepositoryScanResult)
-def scan_imported_repository(
+async def scan_imported_repository(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     scanner_service: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
