@@ -9,6 +9,7 @@ class RepositoryQARequest(BaseModel):
     repository_path: Path
     question: str = Field(min_length=1)
     limit: int = Field(default=5, ge=1, le=20)
+    session_id: str | None = Field(default=None, min_length=1)
 
 
 class ImportedRepositoryQARequest(BaseModel):
@@ -16,6 +17,7 @@ class ImportedRepositoryQARequest(BaseModel):
 
     question: str = Field(min_length=1)
     limit: int = Field(default=5, ge=1, le=20)
+    session_id: str | None = Field(default=None, min_length=1)
 
 
 class RepositoryQASnippetResponse(BaseModel):
@@ -35,6 +37,7 @@ class RepositoryQAResponse(BaseModel):
 
     repository_path: str
     question: str
+    session_id: str | None
     answer: str
     mode: str
     confidence: float = Field(ge=0, le=1)

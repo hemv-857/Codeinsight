@@ -40,6 +40,7 @@ def test_compose_declares_persistent_volumes() -> None:
     config = load_compose_config()
 
     assert set(config["volumes"]) == {
+        "conversation-data",
         "graph-data",
         "neo4j-data",
         "redis-data",

@@ -13,6 +13,7 @@ FastAPI application code for Forge AI.
 Configuration is loaded from environment variables prefixed with `FORGE_AI_`.
 
 - `FORGE_AI_APP_NAME`
+- `FORGE_AI_CONVERSATION_DATABASE_PATH`
 - `FORGE_AI_ENVIRONMENT`
 - `FORGE_AI_GRAPH_DATABASE_PATH`
 - `FORGE_AI_LOG_LEVEL`
@@ -70,6 +71,7 @@ Repository import endpoints:
 - `POST /api/repositories/imports/{import_id}/question`
 - `POST /api/repositories/question/stream`
 - `POST /api/repositories/imports/{import_id}/question/stream`
+- `GET /api/repositories/conversations/{session_id}`
 
 Parse responses include compact AST metadata and extracted source symbols.
 Supported parser languages are C, C++, Go, Java, JavaScript, Python, Rust, and TypeScript.
@@ -101,3 +103,5 @@ Repository Q&A endpoints answer questions from repository summaries, architectur
 explanations, and available hybrid retrieval evidence.
 Streaming Q&A endpoints return Server-Sent Events with `answer.start`,
 `answer.delta`, `answer.metadata`, and `answer.done` events.
+Conversation memory persists Q&A sessions to SQLite and returns a `session_id`
+that can be reused on later Q&A requests.

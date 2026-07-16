@@ -14,9 +14,11 @@ from graph.sqlite_repository import SQLiteKnowledgeGraphRepository
 from parser.tree_sitter_parser import TreeSitterParserService
 
 from backend.app.core.config import Settings, get_cached_settings
+from backend.app.repositories.conversation_memory import ConversationMemoryRepository
 from backend.app.repositories.metadata import MetadataRepository
 from backend.app.repositories.vector_store import VectorStoreRepository
 from backend.app.services.architecture_explanation import ArchitectureExplanationService
+from backend.app.services.conversation_memory import ConversationMemoryService
 from backend.app.services.embedding import (
     EmbeddingClient,
     EmbeddingService,
@@ -223,6 +225,25 @@ def get_repository_qa_service(
         summary_service=summary_service,
         architecture_service=architecture_service,
         retrieval_service=retrieval_service,
+    )
+
+
+@lru_cache(maxsize=16)
+def get_cached_conversation_memory_repository(
+    database_path: str,
+) -> ConversationMemoryRepository:
+    """Return a SQLite-backed conversation memory repository."""
+    return ConversationMemoryRepository(database_path)
+
+
+def get_conversation_memory_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> ConversationMemoryService:
+    """Provide conversation memory operations."""
+    return ConversationMemoryService(
+        repository=get_cached_conversation_memory_repository(
+            str(settings.conversation_database_path)
+        )
     )
 
 

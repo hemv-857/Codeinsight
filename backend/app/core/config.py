@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     """Runtime configuration loaded from environment variables and .env files."""
 
     app_name: str = Field(default="Forge AI")
+    conversation_database_path: Path = Field(
+        default=Path("data/conversations/forge-ai-conversations.sqlite3")
+    )
     embedding_batch_size: PositiveInt = Field(default=64)
     embedding_model: str = Field(default="text-embedding-3-small")
     embedding_provider: Literal["openai", "ollama"] = Field(default="openai")

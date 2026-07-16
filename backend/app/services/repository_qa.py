@@ -46,6 +46,21 @@ class RepositoryQAAnswer:
     supporting_files: tuple[str, ...]
     supporting_symbols: tuple[str, ...]
     snippets: tuple[RepositoryQASnippet, ...]
+    session_id: str | None = None
+
+    def with_session(self, session_id: str) -> "RepositoryQAAnswer":
+        """Return this answer associated with a conversation session."""
+        return RepositoryQAAnswer(
+            repository_path=self.repository_path,
+            question=self.question,
+            answer=self.answer,
+            mode=self.mode,
+            confidence=self.confidence,
+            supporting_files=self.supporting_files,
+            supporting_symbols=self.supporting_symbols,
+            snippets=self.snippets,
+            session_id=session_id,
+        )
 
 
 class RepositoryQAService:

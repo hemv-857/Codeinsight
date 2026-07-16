@@ -22,6 +22,7 @@ from parser.tree_sitter_parser import (
 from backend.app.core.dependencies import (
     get_architecture_explanation_service,
     get_call_graph_service,
+    get_conversation_memory_service,
     get_dependency_graph_service,
     get_embedding_service,
     get_hybrid_retrieval_service,
@@ -35,6 +36,7 @@ from backend.app.core.dependencies import (
     get_tree_sitter_parser_service,
     get_vector_store_service,
 )
+from backend.app.repositories.conversation_memory import ConversationSession
 from backend.app.schemas.architecture_explanation import (
     ArchitectureComponentResponse,
     ArchitectureExplanationRequest,
@@ -47,6 +49,10 @@ from backend.app.schemas.call_graph import (
     CallGraphRequest,
     CallGraphResponse,
     CallGraphStatsResponse,
+)
+from backend.app.schemas.conversation_memory import (
+    ConversationMessageResponse,
+    ConversationSessionResponse,
 )
 from backend.app.schemas.dependency_graph import (
     DependencyEdgeResponse,
@@ -112,6 +118,10 @@ from backend.app.services.architecture_explanation import (
     ArchitectureExplanationError,
     ArchitectureExplanationService,
 )
+from backend.app.services.conversation_memory import (
+    ConversationMemoryError,
+    ConversationMemoryService,
+)
 from backend.app.services.embedding import EmbeddingError, EmbeddingService, RepositoryEmbeddings
 from backend.app.services.metadata import MetadataService
 from backend.app.services.repository_chunker import (
@@ -167,6 +177,7 @@ def to_repository_qa_response(result: RepositoryQAAnswer) -> RepositoryQARespons
     return RepositoryQAResponse(
         repository_path=result.repository_path,
         question=result.question,
+        session_id=result.session_id,
         answer=result.answer,
         mode=result.mode,
         confidence=result.confidence,
@@ -181,6 +192,29 @@ def to_repository_qa_response(result: RepositoryQAAnswer) -> RepositoryQARespons
                 score=snippet.score,
             )
             for snippet in result.snippets
+        ],
+    )
+
+
+def to_conversation_session_response(
+    session: ConversationSession,
+) -> ConversationSessionResponse:
+    """Convert stored conversation memory into an API response."""
+    return ConversationSessionResponse(
+        id=session.id,
+        repository_path=session.repository_path,
+        created_at=session.created_at,
+        updated_at=session.updated_at,
+        messages=[
+            ConversationMessageResponse(
+                id=message.id,
+                session_id=message.session_id,
+                role=message.role,
+                content=message.content,
+                metadata=message.metadata,
+                created_at=message.created_at,
+            )
+            for message in session.messages
         ],
     )
 
@@ -902,21 +936,47 @@ def explain_imported_repository_architecture(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 
+@router.get(
+    "/conversations/{session_id}",
+    response_model=ConversationSessionResponse,
+)
+def get_repository_conversation(
+    session_id: str,
+    memory: Annotated[ConversationMemoryService, Depends(get_conversation_memory_service)],
+) -> ConversationSessionResponse:
+    """Return stored repository conversation memory."""
+    try:
+        return to_conversation_session_response(memory.get_session(session_id))
+    except ConversationMemoryError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+
+
 @router.post("/question", response_model=RepositoryQAResponse)
 def answer_repository_question(
     request: RepositoryQARequest,
     service: Annotated[RepositoryQAService, Depends(get_repository_qa_service)],
+    memory: Annotated[ConversationMemoryService, Depends(get_conversation_memory_service)],
 ) -> RepositoryQAResponse:
     """Answer a repository question using grounded repository context."""
     try:
-        return to_repository_qa_response(
-            service.answer(
-                repository_path=request.repository_path,
-                question=request.question,
-                limit=request.limit,
-            )
+        answer = service.answer(
+            repository_path=request.repository_path,
+            question=request.question,
+            limit=request.limit,
         )
-    except (RepositoryScanError, RepositorySummaryError, RepositoryQAError) as error:
+        remembered = memory.remember_turn(
+            repository_path=answer.repository_path,
+            question=answer.question,
+            answer=answer,
+            session_id=request.session_id,
+        )
+        return to_repository_qa_response(remembered.answer)
+    except (
+        RepositoryScanError,
+        RepositorySummaryError,
+        RepositoryQAError,
+        ConversationMemoryError,
+    ) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 
@@ -924,6 +984,7 @@ def answer_repository_question(
 def stream_repository_question(
     request: RepositoryQARequest,
     service: Annotated[RepositoryQAService, Depends(get_repository_qa_service)],
+    memory: Annotated[ConversationMemoryService, Depends(get_conversation_memory_service)],
 ) -> StreamingResponse:
     """Stream a repository Q&A answer as Server-Sent Events."""
     try:
@@ -932,10 +993,21 @@ def stream_repository_question(
             question=request.question,
             limit=request.limit,
         )
-    except (RepositoryScanError, RepositorySummaryError, RepositoryQAError) as error:
+        remembered = memory.remember_turn(
+            repository_path=answer.repository_path,
+            question=answer.question,
+            answer=answer,
+            session_id=request.session_id,
+        )
+    except (
+        RepositoryScanError,
+        RepositorySummaryError,
+        RepositoryQAError,
+        ConversationMemoryError,
+    ) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
     return StreamingResponse(
-        qa_stream_events(service, answer),
+        qa_stream_events(service, remembered.answer),
         media_type="text/event-stream",
     )
 
@@ -946,22 +1018,33 @@ def answer_imported_repository_question(
     request: ImportedRepositoryQARequest,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[RepositoryQAService, Depends(get_repository_qa_service)],
+    memory: Annotated[ConversationMemoryService, Depends(get_conversation_memory_service)],
 ) -> RepositoryQAResponse:
     """Answer a repository question for a previously imported repository."""
     try:
         imported_repository = import_service.get_progress(import_id)
         if imported_repository.repository_path is None:
             raise RepositoryQAError("Repository import has no local path to answer from.")
-        return to_repository_qa_response(
-            service.answer(
-                repository_path=Path(imported_repository.repository_path),
-                question=request.question,
-                limit=request.limit,
-            )
+        answer = service.answer(
+            repository_path=Path(imported_repository.repository_path),
+            question=request.question,
+            limit=request.limit,
         )
+        remembered = memory.remember_turn(
+            repository_path=answer.repository_path,
+            question=answer.question,
+            answer=answer,
+            session_id=request.session_id,
+        )
+        return to_repository_qa_response(remembered.answer)
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
-    except (RepositoryScanError, RepositorySummaryError, RepositoryQAError) as error:
+    except (
+        RepositoryScanError,
+        RepositorySummaryError,
+        RepositoryQAError,
+        ConversationMemoryError,
+    ) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 
@@ -971,6 +1054,7 @@ def stream_imported_repository_question(
     request: ImportedRepositoryQARequest,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[RepositoryQAService, Depends(get_repository_qa_service)],
+    memory: Annotated[ConversationMemoryService, Depends(get_conversation_memory_service)],
 ) -> StreamingResponse:
     """Stream a repository Q&A answer for a previously imported repository."""
     try:
@@ -982,12 +1066,23 @@ def stream_imported_repository_question(
             question=request.question,
             limit=request.limit,
         )
+        remembered = memory.remember_turn(
+            repository_path=answer.repository_path,
+            question=answer.question,
+            answer=answer,
+            session_id=request.session_id,
+        )
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
-    except (RepositoryScanError, RepositorySummaryError, RepositoryQAError) as error:
+    except (
+        RepositoryScanError,
+        RepositorySummaryError,
+        RepositoryQAError,
+        ConversationMemoryError,
+    ) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
     return StreamingResponse(
-        qa_stream_events(service, answer),
+        qa_stream_events(service, remembered.answer),
         media_type="text/event-stream",
     )
 

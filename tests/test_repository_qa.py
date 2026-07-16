@@ -185,7 +185,11 @@ def test_repository_qa_streams_answer_chunks(tmp_path: Path) -> None:
 def test_repository_qa_api_for_repository_path(tmp_path: Path) -> None:
     create_repository_fixture(tmp_path)
     app = create_app(
-        Settings(environment="test", vector_database_path=tmp_path / "vectors.sqlite3")
+        Settings(
+            environment="test",
+            conversation_database_path=tmp_path / "memory.sqlite3",
+            vector_database_path=tmp_path / "vectors.sqlite3",
+        )
     )
     client = TestClient(app)
 
@@ -197,14 +201,34 @@ def test_repository_qa_api_for_repository_path(tmp_path: Path) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["mode"] == "summary"
+    assert body["session_id"]
     assert body["supporting_files"]
     assert body["confidence"] > 0
+
+    followup_response = client.post(
+        "/api/repositories/question",
+        json={
+            "repository_path": str(tmp_path),
+            "question": "How does auth work?",
+            "session_id": body["session_id"],
+        },
+    )
+    history_response = client.get(f"/api/repositories/conversations/{body['session_id']}")
+
+    assert followup_response.status_code == 200
+    assert followup_response.json()["session_id"] == body["session_id"]
+    assert history_response.status_code == 200
+    assert len(history_response.json()["messages"]) == 4
 
 
 def test_repository_qa_stream_api_for_repository_path(tmp_path: Path) -> None:
     create_repository_fixture(tmp_path)
     app = create_app(
-        Settings(environment="test", vector_database_path=tmp_path / "vectors.sqlite3")
+        Settings(
+            environment="test",
+            conversation_database_path=tmp_path / "memory.sqlite3",
+            vector_database_path=tmp_path / "vectors.sqlite3",
+        )
     )
     client = TestClient(app)
 
@@ -228,6 +252,7 @@ def test_repository_qa_api_for_imported_repository(tmp_path: Path) -> None:
     app = create_app(
         Settings(
             environment="test",
+            conversation_database_path=tmp_path / "memory.sqlite3",
             repository_storage_path=tmp_path / "imports",
             vector_database_path=tmp_path / "vectors.sqlite3",
         )
@@ -247,6 +272,7 @@ def test_repository_qa_api_for_imported_repository(tmp_path: Path) -> None:
     assert import_response.status_code == 201
     assert qa_response.status_code == 200
     assert qa_response.json()["supporting_files"]
+    assert qa_response.json()["session_id"]
 
 
 def test_repository_qa_stream_api_for_imported_repository(tmp_path: Path) -> None:
@@ -256,6 +282,7 @@ def test_repository_qa_stream_api_for_imported_repository(tmp_path: Path) -> Non
     app = create_app(
         Settings(
             environment="test",
+            conversation_database_path=tmp_path / "memory.sqlite3",
             repository_storage_path=tmp_path / "imports",
             vector_database_path=tmp_path / "vectors.sqlite3",
         )
@@ -274,6 +301,7 @@ def test_repository_qa_stream_api_for_imported_repository(tmp_path: Path) -> Non
 
     assert import_response.status_code == 201
     assert stream_response.status_code == 200
+    assert "session_id" in stream_response.text
     assert "event: answer.done" in stream_response.text
 
 

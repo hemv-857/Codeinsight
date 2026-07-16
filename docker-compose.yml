@@ -7,6 +7,7 @@ services:
       dockerfile: docker/backend.Dockerfile
     environment:
       FORGE_AI_ENVIRONMENT: production
+      FORGE_AI_CONVERSATION_DATABASE_PATH: /app/data/conversations/forge-ai-conversations.sqlite3
       FORGE_AI_GRAPH_DATABASE_PATH: /app/data/graphs/forge-ai-graph.sqlite3
       FORGE_AI_LOG_LEVEL: INFO
       FORGE_AI_NEO4J_DATABASE: neo4j
@@ -18,6 +19,7 @@ services:
     ports:
       - '8000:8000'
     volumes:
+      - conversation-data:/app/data/conversations
       - graph-data:/app/data/graphs
       - repository-data:/app/data/repositories
       - vector-data:/app/data/vectors
@@ -116,6 +118,7 @@ services:
 
 volumes:
   neo4j-data:
+  conversation-data:
   repository-data:
   graph-data:
   vector-data:
