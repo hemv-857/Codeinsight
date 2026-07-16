@@ -2,10 +2,11 @@
 
 Tree-sitter parser integrations live here.
 
-Milestone 8 supports AST generation for:
+The parser service supports AST generation and symbol extraction for:
 
 - Python
 - JavaScript
 - TypeScript
 
-Symbol extraction starts in Milestone 9.
+Extracted symbols include functions, classes, methods, variables, imports, exports,
+inheritance, and TypeScript interfaces.

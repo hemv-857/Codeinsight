@@ -20,6 +20,7 @@ from backend.app.schemas.parse import (
     ParseRepositoryResponse,
     ParseTreeResponse,
     SourcePoint,
+    SourceSymbolResponse,
 )
 from backend.app.schemas.repository_import import RepositoryImportRequest, RepositoryImportResponse
 from backend.app.schemas.repository_scan import RepositoryScanRequest, RepositoryScanResult
@@ -42,6 +43,21 @@ def to_parse_response(result: ParseTreeSummary) -> ParseTreeResponse:
         end_point=SourcePoint(row=result.end_point.row, column=result.end_point.column),
         has_error=result.has_error,
         named_child_count=result.named_child_count,
+        symbols=[
+            SourceSymbolResponse(
+                kind=symbol.kind,
+                name=symbol.name,
+                line=symbol.line,
+                column=symbol.column,
+                end_line=symbol.end_line,
+                end_column=symbol.end_column,
+                parent=symbol.parent,
+                source=symbol.source,
+                exported=symbol.exported,
+                inherits=list(symbol.inherits),
+            )
+            for symbol in result.symbols
+        ],
     )
 
 

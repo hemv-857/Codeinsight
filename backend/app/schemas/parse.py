@@ -18,6 +18,23 @@ class SourcePoint(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
+class SourceSymbolResponse(BaseModel):
+    """Symbol extracted from a parsed source file."""
+
+    kind: str
+    name: str
+    line: int = Field(ge=1)
+    column: int = Field(ge=0)
+    end_line: int = Field(ge=1)
+    end_column: int = Field(ge=0)
+    parent: str | None = None
+    source: str | None = None
+    exported: bool = False
+    inherits: list[str] = Field(default_factory=list)
+
+    model_config = ConfigDict(frozen=True)
+
+
 class ParseTreeResponse(BaseModel):
     """Compact Tree-sitter parse result."""
 
@@ -30,6 +47,7 @@ class ParseTreeResponse(BaseModel):
     end_point: SourcePoint
     has_error: bool
     named_child_count: int = Field(ge=0)
+    symbols: list[SourceSymbolResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(frozen=True)
 

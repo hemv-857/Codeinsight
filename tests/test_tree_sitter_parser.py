@@ -1,11 +1,12 @@
 import subprocess
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
 from backend.app.core.config import Settings
 from backend.app.main import create_app
 from fastapi.testclient import TestClient
-from parser.tree_sitter_parser import TreeSitterParseError, TreeSitterParserService
+from parser.tree_sitter_parser import SourceSymbol, TreeSitterParseError, TreeSitterParserService
 
 
 def write_file(path: Path, content: str) -> None:
@@ -41,6 +42,10 @@ def create_git_repository(path: Path) -> None:
     )
 
 
+def symbol_names(result_symbols: Sequence[SourceSymbol], kind: str) -> list[str]:
+    return [symbol.name for symbol in result_symbols if symbol.kind == kind]
+
+
 def test_parser_supports_python_javascript_typescript_and_tsx(tmp_path: Path) -> None:
     files = {
         "main.py": ("print('hello')\n", "Python", "module"),
@@ -63,6 +68,110 @@ def test_parser_supports_python_javascript_typescript_and_tsx(tmp_path: Path) ->
         assert result.named_child_count > 0
 
 
+def test_parser_extracts_python_symbols(tmp_path: Path) -> None:
+    source_path = tmp_path / "main.py"
+    write_file(
+        source_path,
+        "\n".join(
+            [
+                "import os",
+                "from service.base import BaseService",
+                "",
+                "class UserService(BaseService):",
+                "    version = 1",
+                "",
+                "    def load(self, user_id):",
+                "        result = user_id",
+                "        return result",
+                "",
+                "def make_user(name):",
+                "    user = name",
+                "    return user",
+                "",
+            ]
+        ),
+    )
+    service = TreeSitterParserService()
+
+    result = service.parse_file(source_path)
+
+    assert symbol_names(result.symbols, "import") == ["os", "BaseService"]
+    assert symbol_names(result.symbols, "class") == ["UserService"]
+    assert symbol_names(result.symbols, "method") == ["load"]
+    assert symbol_names(result.symbols, "function") == ["make_user"]
+    assert symbol_names(result.symbols, "variable") == ["version", "result", "user"]
+    user_service = next(symbol for symbol in result.symbols if symbol.name == "UserService")
+    load = next(symbol for symbol in result.symbols if symbol.name == "load")
+    base_import = next(symbol for symbol in result.symbols if symbol.name == "BaseService")
+    assert user_service.inherits == ("BaseService",)
+    assert load.parent == "UserService"
+    assert base_import.source == "service.base"
+    assert user_service.line == 4
+
+
+def test_parser_extracts_javascript_and_typescript_symbols(tmp_path: Path) -> None:
+    files = {
+        "app.js": (
+            "\n".join(
+                [
+                    "import fs from 'fs';",
+                    "export class Worker extends BaseWorker {",
+                    "  run(input) {",
+                    "    const value = input;",
+                    "    return value;",
+                    "  }",
+                    "}",
+                    "export function start() {",
+                    "  var enabled = true;",
+                    "  return enabled;",
+                    "}",
+                    "export const workerName = 'forge';",
+                    "",
+                ]
+            ),
+            "Worker",
+            "BaseWorker",
+            ["Worker", "start", "workerName"],
+        ),
+        "app.ts": (
+            "\n".join(
+                [
+                    "import React from 'react';",
+                    "export interface User extends Person {",
+                    "  id: string;",
+                    "}",
+                    "export class UserStore extends BaseStore {",
+                    "  find(id: string) {",
+                    "    const value = id;",
+                    "    return value;",
+                    "  }",
+                    "}",
+                    "export const storeName: string = 'users';",
+                    "",
+                ]
+            ),
+            "UserStore",
+            "BaseStore",
+            ["User", "UserStore", "storeName"],
+        ),
+    }
+    service = TreeSitterParserService()
+
+    for filename, (content, class_name, inherited_name, exported_names) in files.items():
+        source_path = tmp_path / filename
+        write_file(source_path, content)
+
+        result = service.parse_file(source_path)
+
+        exported = [symbol.name for symbol in result.symbols if symbol.exported]
+        parsed_class = next(symbol for symbol in result.symbols if symbol.name == class_name)
+        assert exported == exported_names
+        assert parsed_class.inherits == (inherited_name,)
+        assert symbol_names(result.symbols, "import")
+        assert symbol_names(result.symbols, "method")
+        assert symbol_names(result.symbols, "variable")
+
+
 def test_parser_rejects_unsupported_files(tmp_path: Path) -> None:
     source_path = tmp_path / "README.md"
     write_file(source_path, "# Demo\n")
@@ -74,7 +183,7 @@ def test_parser_rejects_unsupported_files(tmp_path: Path) -> None:
 
 def test_parse_file_api(tmp_path: Path) -> None:
     source_path = tmp_path / "main.py"
-    write_file(source_path, "print('hello')\n")
+    write_file(source_path, "def hello():\n    return 'world'\n")
     client = TestClient(create_app(Settings(environment="test")))
 
     response = client.post("/api/repositories/parse-file", json={"path": str(source_path)})
@@ -84,6 +193,7 @@ def test_parse_file_api(tmp_path: Path) -> None:
     assert body["language"] == "Python"
     assert body["root_node_type"] == "module"
     assert body["has_error"] is False
+    assert [symbol["name"] for symbol in body["symbols"]] == ["hello"]
 
 
 def test_parse_imported_repository_api(tmp_path: Path) -> None:

@@ -35,3 +35,5 @@ Repository import endpoints:
 - `GET /api/repositories/imports/{import_id}/metadata`
 - `POST /api/repositories/parse-file`
 - `POST /api/repositories/parse-import/{import_id}`
+
+Parse responses include compact AST metadata and extracted source symbols.
