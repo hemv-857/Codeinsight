@@ -27,3 +27,5 @@ Repository import endpoints:
 - `POST /api/repositories/import`
 - `POST /api/repositories/import/zip`
 - `GET /api/repositories/imports/{import_id}`
+- `POST /api/repositories/scan`
+- `GET /api/repositories/imports/{import_id}/scan`

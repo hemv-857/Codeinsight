@@ -6,6 +6,7 @@ from fastapi import Depends
 
 from backend.app.core.config import Settings, get_cached_settings
 from backend.app.services.repository_import import RepositoryImportService
+from backend.app.services.repository_scanner import RepositoryScannerService
 
 
 def get_settings() -> Settings:
@@ -36,3 +37,9 @@ def get_repository_import_service(
         clone_timeout_seconds=settings.repository_clone_timeout_seconds,
         max_zip_bytes=settings.repository_zip_max_bytes,
     )
+
+
+@lru_cache(maxsize=1)
+def get_repository_scanner_service() -> RepositoryScannerService:
+    """Provide repository scanning operations to API routes."""
+    return RepositoryScannerService()
