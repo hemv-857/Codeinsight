@@ -138,6 +138,9 @@ export interface TechnicalDebtStats {
   medium_count: number;
   low_count: number;
   score: number;
+  average_complexity: number;
+  max_complexity: number;
+  complex_symbol_count: number;
 }
 
 export interface TechnicalDebtReport {

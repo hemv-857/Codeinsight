@@ -362,6 +362,9 @@ def to_technical_debt_response(result: TechnicalDebtReport) -> TechnicalDebtResp
             medium_count=result.stats.medium_count,
             low_count=result.stats.low_count,
             score=result.stats.score,
+            average_complexity=result.stats.average_complexity,
+            max_complexity=result.stats.max_complexity,
+            complex_symbol_count=result.stats.complex_symbol_count,
         ),
     )
 

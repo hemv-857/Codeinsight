@@ -17,10 +17,14 @@ def write_file(path: Path, content: str) -> None:
 
 def create_debt_fixture(path: Path) -> None:
     long_body = "\n".join(f"    value_{index} = {index}" for index in range(81))
+    complex_body = "\n".join(
+        f"    if value == {index}:\n        value += {index}" for index in range(10)
+    )
     methods = "\n".join(
         f"    def method_{index}(self):\n        return {index}" for index in range(15)
     )
     write_file(path / "app" / "long.py", f"def long_function():\n{long_body}\n")
+    write_file(path / "app" / "complex.py", f"def complex_function(value):\n{complex_body}\n")
     write_file(path / "app" / "wide.py", f"class WideService:\n{methods}\n")
     write_file(path / "src" / "a.ts", "import { b } from './b';\nexport const a = b;\n")
     write_file(path / "src" / "b.ts", "import { a } from './a';\nexport const b = a;\n")
@@ -69,10 +73,12 @@ def test_technical_debt_service_reports_real_findings(tmp_path: Path) -> None:
     report = create_service().analyze(tmp_path)
 
     categories = {finding.category for finding in report.findings}
-    assert {"long_symbol", "broad_type", "dependency_cycle"}.issubset(categories)
-    assert report.stats.file_count == 4
-    assert report.stats.parsed_file_count == 4
+    assert {"long_symbol", "high_complexity", "broad_type", "dependency_cycle"}.issubset(categories)
+    assert report.stats.file_count == 5
+    assert report.stats.parsed_file_count == 5
     assert report.stats.finding_count >= 3
+    assert report.stats.max_complexity >= 10
+    assert report.stats.complex_symbol_count >= 1
     assert report.stats.score < 100
 
 
@@ -87,7 +93,9 @@ def test_technical_debt_api_for_repository_path(tmp_path: Path) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["stats"]["finding_count"] >= 3
+    assert body["stats"]["max_complexity"] >= 10
     assert any(finding["category"] == "long_symbol" for finding in body["findings"])
+    assert any(finding["category"] == "high_complexity" for finding in body["findings"])
 
 
 def test_technical_debt_api_for_imported_repository(tmp_path: Path) -> None:

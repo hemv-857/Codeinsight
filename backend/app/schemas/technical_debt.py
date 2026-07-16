@@ -39,6 +39,9 @@ class TechnicalDebtStatsResponse(BaseModel):
     medium_count: int = Field(ge=0)
     low_count: int = Field(ge=0)
     score: int = Field(ge=0, le=100)
+    average_complexity: float = Field(ge=0)
+    max_complexity: int = Field(ge=0)
+    complex_symbol_count: int = Field(ge=0)
 
     model_config = ConfigDict(frozen=True)
 

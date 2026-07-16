@@ -15,6 +15,21 @@ LARGE_FILE_LINES = 500
 LONG_SYMBOL_LINES = 80
 BROAD_TYPE_METHODS = 15
 HIGH_FAN_OUT = 8
+HIGH_COMPLEXITY = 10
+CRITICAL_COMPLEXITY = 20
+COMPLEXITY_TOKENS = (
+    " if ",
+    " elif ",
+    " else if ",
+    " for ",
+    " while ",
+    " case ",
+    " catch ",
+    " except ",
+    "&&",
+    "||",
+    "?",
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +65,9 @@ class TechnicalDebtStats:
     medium_count: int
     low_count: int
     score: int
+    average_complexity: float
+    max_complexity: int
+    complex_symbol_count: int
 
 
 @dataclass(frozen=True)
@@ -82,11 +100,13 @@ class TechnicalDebtService:
             raise TechnicalDebtError(str(error)) from error
 
         findings: list[TechnicalDebtFinding] = []
+        complexities: list[int] = []
         parsed_file_count = 0
         for file in scan.files:
             path = root / file.path
             if file.language is None or not self.parser.supports_path(path):
                 continue
+            lines = path.read_text(errors="ignore").splitlines()
             findings.extend(self._file_size_findings(path, file.path))
             try:
                 parsed = self.parser.parse_file(path)
@@ -96,7 +116,11 @@ class TechnicalDebtService:
             parsed_file_count += 1
             if parsed.has_error:
                 findings.append(self._parse_error(file.path, "Tree-sitter reported syntax errors."))
-            findings.extend(self._symbol_findings(file.path, parsed.symbols))
+            symbol_findings, symbol_complexities = self._symbol_findings(
+                file.path, parsed.symbols, lines
+            )
+            findings.extend(symbol_findings)
+            complexities.extend(symbol_complexities)
 
         findings.extend(self._dependency_findings(root))
         ordered_findings = tuple(
@@ -111,6 +135,7 @@ class TechnicalDebtService:
                 scan_file_count=len(scan.files),
                 parsed_file_count=parsed_file_count,
                 findings=ordered_findings,
+                complexities=complexities,
             ),
         )
 
@@ -130,9 +155,10 @@ class TechnicalDebtService:
         ]
 
     def _symbol_findings(
-        self, path: str, symbols: tuple[SourceSymbol, ...]
-    ) -> list[TechnicalDebtFinding]:
+        self, path: str, symbols: tuple[SourceSymbol, ...], lines: list[str]
+    ) -> tuple[list[TechnicalDebtFinding], list[int]]:
         findings: list[TechnicalDebtFinding] = []
+        complexities: list[int] = []
         methods_by_parent = Counter(
             symbol.parent for symbol in symbols if symbol.kind == "method" and symbol.parent
         )
@@ -152,6 +178,26 @@ class TechnicalDebtService:
                         evidence=(f"{line_count} lines", symbol.kind),
                     )
                 )
+            if symbol.kind in {"function", "method"}:
+                complexity = self._complexity(symbol, lines)
+                complexities.append(complexity)
+                if complexity >= HIGH_COMPLEXITY:
+                    severity: DebtSeverity = (
+                        "critical" if complexity >= CRITICAL_COMPLEXITY else "high"
+                    )
+                    findings.append(
+                        TechnicalDebtFinding(
+                            category="high_complexity",
+                            severity=severity,
+                            path=path,
+                            line=symbol.line,
+                            end_line=symbol.end_line,
+                            symbol_name=symbol.name,
+                            title="High cyclomatic complexity",
+                            description=f"{symbol.name} has estimated complexity {complexity}.",
+                            evidence=(f"complexity {complexity}", symbol.kind),
+                        )
+                    )
             if (
                 symbol.kind in {"class", "interface"}
                 and methods_by_parent[symbol.name] >= BROAD_TYPE_METHODS
@@ -171,7 +217,11 @@ class TechnicalDebtService:
                         evidence=(f"{methods_by_parent[symbol.name]} methods",),
                     )
                 )
-        return findings
+        return findings, complexities
+
+    def _complexity(self, symbol: SourceSymbol, lines: list[str]) -> int:
+        source = "\n".join(lines[max(symbol.line - 1, 0) : symbol.end_line]).lower()
+        return 1 + sum(source.count(token) for token in COMPLEXITY_TOKENS)
 
     def _dependency_findings(self, root: Path) -> list[TechnicalDebtFinding]:
         try:
@@ -221,6 +271,7 @@ class TechnicalDebtService:
         scan_file_count: int,
         parsed_file_count: int,
         findings: tuple[TechnicalDebtFinding, ...],
+        complexities: list[int],
     ) -> TechnicalDebtStats:
         counts = Counter(finding.severity for finding in findings)
         score = max(
@@ -240,6 +291,13 @@ class TechnicalDebtService:
             medium_count=counts["medium"],
             low_count=counts["low"],
             score=score,
+            average_complexity=(
+                round(sum(complexities) / len(complexities), 2) if complexities else 0.0
+            ),
+            max_complexity=max(complexities, default=0),
+            complex_symbol_count=sum(
+                1 for complexity in complexities if complexity >= HIGH_COMPLEXITY
+            ),
         )
 
 

@@ -132,8 +132,10 @@ export function TechnicalDebtPanel({ scan }: TechnicalDebtPanelProps) {
             <div className="grid grid-cols-2 gap-2 text-sm">
               <Stat label="Findings" value={report.stats.finding_count} />
               <Stat label="Parsed" value={report.stats.parsed_file_count} />
+              <Stat label="Avg Cx" value={report.stats.average_complexity} />
+              <Stat label="Max Cx" value={report.stats.max_complexity} />
+              <Stat label="Complex" value={report.stats.complex_symbol_count} />
               <Stat label="High" value={report.stats.high_count} />
-              <Stat label="Medium" value={report.stats.medium_count} />
             </div>
           </aside>
           <div className="max-h-[520px] overflow-auto rounded-lg border border-border bg-card">
