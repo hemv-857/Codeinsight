@@ -2,13 +2,25 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from parser.tree_sitter_parser import (
+    ParseTreeSummary,
+    TreeSitterParseError,
+    TreeSitterParserService,
+)
 
 from backend.app.core.dependencies import (
     get_metadata_service,
     get_repository_import_service,
     get_repository_scanner_service,
+    get_tree_sitter_parser_service,
 )
 from backend.app.schemas.metadata import MetadataPersistRequest, StoredRepositoryMetadata
+from backend.app.schemas.parse import (
+    ParseFileRequest,
+    ParseRepositoryResponse,
+    ParseTreeResponse,
+    SourcePoint,
+)
 from backend.app.schemas.repository_import import RepositoryImportRequest, RepositoryImportResponse
 from backend.app.schemas.repository_scan import RepositoryScanRequest, RepositoryScanResult
 from backend.app.services.metadata import MetadataService
@@ -16,6 +28,21 @@ from backend.app.services.repository_import import RepositoryImportError, Reposi
 from backend.app.services.repository_scanner import RepositoryScanError, RepositoryScannerService
 
 router = APIRouter(prefix="/api/repositories", tags=["repositories"])
+
+
+def to_parse_response(result: ParseTreeSummary) -> ParseTreeResponse:
+    """Convert parser-domain output into an API response."""
+    return ParseTreeResponse(
+        path=result.path,
+        language=result.language,
+        root_node_type=result.root_node_type,
+        start_byte=result.start_byte,
+        end_byte=result.end_byte,
+        start_point=SourcePoint(row=result.start_point.row, column=result.start_point.column),
+        end_point=SourcePoint(row=result.end_point.row, column=result.end_point.column),
+        has_error=result.has_error,
+        named_child_count=result.named_child_count,
+    )
 
 
 @router.post(
@@ -137,4 +164,45 @@ def persist_imported_repository_metadata(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except RepositoryScanError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/parse-file", response_model=ParseTreeResponse)
+def parse_repository_file(
+    request: ParseFileRequest,
+    parser_service: Annotated[TreeSitterParserService, Depends(get_tree_sitter_parser_service)],
+) -> ParseTreeResponse:
+    """Parse one supported source file with Tree-sitter."""
+    try:
+        return to_parse_response(parser_service.parse_file(request.path))
+    except TreeSitterParseError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/parse-import/{import_id}", response_model=ParseRepositoryResponse)
+def parse_imported_repository(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    scanner_service: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
+    parser_service: Annotated[TreeSitterParserService, Depends(get_tree_sitter_parser_service)],
+) -> ParseRepositoryResponse:
+    """Parse supported files in a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise TreeSitterParseError("Repository import has no local path to parse.")
+        repository_path = Path(imported_repository.repository_path)
+        scan = scanner_service.scan(repository_path)
+        parsed_files = [
+            to_parse_response(parser_service.parse_file(repository_path / file.path))
+            for file in scan.files
+            if parser_service.supports_path(Path(file.path))
+        ]
+        return ParseRepositoryResponse(
+            repository_path=str(repository_path),
+            parsed_files=parsed_files,
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (RepositoryScanError, TreeSitterParseError) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error

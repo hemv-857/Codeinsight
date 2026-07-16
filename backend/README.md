@@ -33,3 +33,5 @@ Repository import endpoints:
 - `POST /api/repositories/metadata`
 - `GET /api/repositories/metadata/{repository_id}`
 - `GET /api/repositories/imports/{import_id}/metadata`
+- `POST /api/repositories/parse-file`
+- `POST /api/repositories/parse-import/{import_id}`

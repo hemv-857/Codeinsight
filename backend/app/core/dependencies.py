@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends
+from parser.tree_sitter_parser import TreeSitterParserService
 
 from backend.app.core.config import Settings, get_cached_settings
 from backend.app.repositories.metadata import MetadataRepository
@@ -62,3 +63,9 @@ def get_metadata_service(
         scanner=scanner,
         repository=get_cached_metadata_repository(str(settings.metadata_database_path)),
     )
+
+
+@lru_cache(maxsize=1)
+def get_tree_sitter_parser_service() -> TreeSitterParserService:
+    """Provide Tree-sitter parsing operations to API routes."""
+    return TreeSitterParserService()
