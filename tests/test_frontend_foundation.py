@@ -26,6 +26,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/app/page.tsx",
         "frontend/app/globals.css",
         "frontend/components/architecture-docs-panel.tsx",
+        "frontend/components/architecture-review-panel.tsx",
         "frontend/components/architecture-violations-panel.tsx",
         "frontend/components/bug-impact-panel.tsx",
         "frontend/components/dashboard.tsx",
@@ -205,6 +206,17 @@ def test_frontend_pull_request_review_uses_pr_review_apis() -> None:
     assert "reviewPullRequest" in review_source
     assert "reviewImportedPullRequest" in review_source
     assert "PullRequestReviewPanel" in review_source
+
+
+def test_frontend_architecture_review_uses_architecture_review_apis() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+    review_source = (ROOT / "frontend" / "components" / "architecture-review-panel.tsx").read_text()
+
+    assert "/api/repositories/architecture-review" in api_source
+    assert "/architecture-review" in api_source
+    assert "reviewArchitecture" in review_source
+    assert "reviewImportedArchitecture" in review_source
+    assert "ArchitectureReviewPanel" in review_source
 
 
 def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:

@@ -88,6 +88,8 @@ Repository import endpoints:
 - `POST /api/repositories/imports/{import_id}/developer-onboarding`
 - `POST /api/repositories/pr-review`
 - `POST /api/repositories/imports/{import_id}/pr-review`
+- `POST /api/repositories/architecture-review`
+- `POST /api/repositories/imports/{import_id}/architecture-review`
 - `POST /api/repositories/question`
 - `POST /api/repositories/imports/{import_id}/question`
 - `POST /api/repositories/question/stream`
@@ -126,6 +128,8 @@ and uncalled functions or methods from dependency and call graph evidence.
 Architecture violation endpoints flag common layer-boundary problems from import
 edges, including production-to-test imports, UI-to-infrastructure imports, and
 route/controller imports that skip the service layer.
+Architecture review endpoints evaluate proposed changed files against dependency
+impact, key architecture files, layer spread, and scoped boundary violations.
 Stack trace parsing extracts normalized frames, files, functions, line numbers,
 language, error type, and message from common Python, JavaScript, Java, and Go
 trace formats.

@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 import { ArchitectureViolationsPanel } from '@/components/architecture-violations-panel';
 import { ArchitectureDocsPanel } from '@/components/architecture-docs-panel';
+import { ArchitectureReviewPanel } from '@/components/architecture-review-panel';
 import { BugImpactPanel } from '@/components/bug-impact-panel';
 import { CircularDependenciesPanel } from '@/components/circular-dependencies-panel';
 import { DeadCodePanel } from '@/components/dead-code-panel';
@@ -260,6 +261,19 @@ export function Dashboard() {
                 <Activity className="h-5 w-5 text-accent" />
               </div>
               <PullRequestReviewPanel scan={scan} />
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Architecture Review</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Review changed files for architecture impact, layer spread, and boundary risk.
+                  </p>
+                </div>
+                <Activity className="h-5 w-5 text-accent" />
+              </div>
+              <ArchitectureReviewPanel scan={scan} />
             </section>
 
             <section className="space-y-4">

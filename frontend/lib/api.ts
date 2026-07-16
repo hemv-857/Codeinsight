@@ -434,6 +434,43 @@ export interface PullRequestReview {
   stats: PullRequestReviewStats;
 }
 
+export interface ArchitectureReviewFinding {
+  category: string;
+  severity: ReviewSeverity;
+  path: string | null;
+  title: string;
+  description: string;
+  evidence: string[];
+}
+
+export interface ArchitectureReviewImpactFile {
+  path: string;
+  layer: string;
+  reason: string;
+  score: number;
+}
+
+export interface ArchitectureReviewStats {
+  changed_file_count: number;
+  impacted_file_count: number;
+  violation_count: number;
+  finding_count: number;
+  risk_score: number;
+  risk_level: ReviewSeverity;
+  confidence: number;
+}
+
+export interface ArchitectureReview {
+  repository_path: string;
+  focus: string | null;
+  changed_files: string[];
+  impacted_files: ArchitectureReviewImpactFile[];
+  findings: ArchitectureReviewFinding[];
+  recommendations: string[];
+  summary: string;
+  stats: ArchitectureReviewStats;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -831,6 +868,52 @@ export async function reviewImportedPullRequest(
   }
 
   return response.json() as Promise<PullRequestReview>;
+}
+
+export async function reviewArchitecture(
+  repositoryPath: string,
+  changedFiles: string[],
+  focus?: string,
+): Promise<ArchitectureReview> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/architecture-review`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      repository_path: repositoryPath,
+      changed_files: changedFiles,
+      focus: focus || null,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Architecture review failed'));
+  }
+
+  return response.json() as Promise<ArchitectureReview>;
+}
+
+export async function reviewImportedArchitecture(
+  importId: string,
+  changedFiles: string[],
+  focus?: string,
+): Promise<ArchitectureReview> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/repositories/imports/${importId}/architecture-review`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        changed_files: changedFiles,
+        focus: focus || null,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Imported architecture review failed'));
+  }
+
+  return response.json() as Promise<ArchitectureReview>;
 }
 
 export async function buildKnowledgeGraph(repositoryPath: string): Promise<KnowledgeGraphResult> {

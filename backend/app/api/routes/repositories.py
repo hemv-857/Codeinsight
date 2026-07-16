@@ -22,6 +22,7 @@ from parser.tree_sitter_parser import (
 from backend.app.core.dependencies import (
     get_architecture_docs_service,
     get_architecture_explanation_service,
+    get_architecture_review_service,
     get_architecture_violation_service,
     get_bug_impact_service,
     get_call_graph_service,
@@ -60,6 +61,14 @@ from backend.app.schemas.architecture_explanation import (
     ArchitectureExplanationRequest,
     ArchitectureExplanationResponse,
     ImportedArchitectureExplanationRequest,
+)
+from backend.app.schemas.architecture_review import (
+    ArchitectureReviewFindingResponse,
+    ArchitectureReviewImpactFileResponse,
+    ArchitectureReviewRequest,
+    ArchitectureReviewResponse,
+    ArchitectureReviewStatsResponse,
+    ImportedArchitectureReviewRequest,
 )
 from backend.app.schemas.architecture_violations import (
     ArchitectureViolationRequest,
@@ -208,6 +217,11 @@ from backend.app.services.architecture_explanation import (
     ArchitectureExplanation,
     ArchitectureExplanationError,
     ArchitectureExplanationService,
+)
+from backend.app.services.architecture_review import (
+    ArchitectureReview,
+    ArchitectureReviewError,
+    ArchitectureReviewService,
 )
 from backend.app.services.architecture_violations import (
     ArchitectureViolationError,
@@ -414,6 +428,46 @@ def to_pull_request_review_response(result: PullRequestReview) -> PullRequestRev
         stats=PullRequestReviewStatsResponse(
             changed_file_count=result.stats.changed_file_count,
             impacted_file_count=result.stats.impacted_file_count,
+            finding_count=result.stats.finding_count,
+            risk_score=result.stats.risk_score,
+            risk_level=result.stats.risk_level,
+            confidence=result.stats.confidence,
+        ),
+    )
+
+
+def to_architecture_review_response(result: ArchitectureReview) -> ArchitectureReviewResponse:
+    """Convert architecture review output into an API response."""
+    return ArchitectureReviewResponse(
+        repository_path=result.repository_path,
+        focus=result.focus,
+        changed_files=list(result.changed_files),
+        impacted_files=[
+            ArchitectureReviewImpactFileResponse(
+                path=file.path,
+                layer=file.layer,
+                reason=file.reason,
+                score=file.score,
+            )
+            for file in result.impacted_files
+        ],
+        findings=[
+            ArchitectureReviewFindingResponse(
+                category=finding.category,
+                severity=finding.severity,
+                path=finding.path,
+                title=finding.title,
+                description=finding.description,
+                evidence=list(finding.evidence),
+            )
+            for finding in result.findings
+        ],
+        recommendations=list(result.recommendations),
+        summary=result.summary,
+        stats=ArchitectureReviewStatsResponse(
+            changed_file_count=result.stats.changed_file_count,
+            impacted_file_count=result.stats.impacted_file_count,
+            violation_count=result.stats.violation_count,
             finding_count=result.stats.finding_count,
             risk_score=result.stats.risk_score,
             risk_level=result.stats.risk_level,
@@ -1803,6 +1857,49 @@ def review_imported_repository_pull_request(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except PullRequestReviewError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/architecture-review", response_model=ArchitectureReviewResponse)
+def review_repository_architecture(
+    request: ArchitectureReviewRequest,
+    service: Annotated[ArchitectureReviewService, Depends(get_architecture_review_service)],
+) -> ArchitectureReviewResponse:
+    """Review proposed changes against architecture impact signals."""
+    try:
+        return to_architecture_review_response(
+            service.review(
+                repository_path=request.repository_path,
+                changed_files=tuple(request.changed_files),
+                focus=request.focus,
+            )
+        )
+    except ArchitectureReviewError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/imports/{import_id}/architecture-review", response_model=ArchitectureReviewResponse)
+def review_imported_repository_architecture(
+    import_id: str,
+    request: ImportedArchitectureReviewRequest,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[ArchitectureReviewService, Depends(get_architecture_review_service)],
+) -> ArchitectureReviewResponse:
+    """Review proposed architecture changes for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise ArchitectureReviewError("Repository import has no local path to review.")
+        return to_architecture_review_response(
+            service.review(
+                repository_path=Path(imported_repository.repository_path),
+                changed_files=tuple(request.changed_files),
+                focus=request.focus,
+            )
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except ArchitectureReviewError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

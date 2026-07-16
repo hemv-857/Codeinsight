@@ -19,6 +19,7 @@ from backend.app.repositories.metadata import MetadataRepository
 from backend.app.repositories.vector_store import VectorStoreRepository
 from backend.app.services.architecture_docs import ArchitectureDocsService
 from backend.app.services.architecture_explanation import ArchitectureExplanationService
+from backend.app.services.architecture_review import ArchitectureReviewService
 from backend.app.services.architecture_violations import ArchitectureViolationService
 from backend.app.services.bug_impact import BugImpactService
 from backend.app.services.circular_dependencies import CircularDependencyService
@@ -251,6 +252,23 @@ def get_architecture_violation_service(
 ) -> ArchitectureViolationService:
     """Provide architecture violation detection operations."""
     return ArchitectureViolationService(dependency_graph=dependency_graph)
+
+
+def get_architecture_review_service(
+    scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
+    dependency_graph: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
+    summary: Annotated[RepositorySummaryService, Depends(get_repository_summary_service)],
+    architecture_violations: Annotated[
+        ArchitectureViolationService, Depends(get_architecture_violation_service)
+    ],
+) -> ArchitectureReviewService:
+    """Provide architecture review operations."""
+    return ArchitectureReviewService(
+        scanner=scanner,
+        dependency_graph=dependency_graph,
+        summary=summary,
+        architecture_violations=architecture_violations,
+    )
 
 
 @lru_cache(maxsize=1)
