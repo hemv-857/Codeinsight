@@ -43,6 +43,7 @@ from backend.app.core.dependencies import (
     get_repository_qa_service,
     get_repository_scanner_service,
     get_repository_summary_service,
+    get_security_review_service,
     get_stack_trace_parser_service,
     get_technical_debt_service,
     get_tree_sitter_parser_service,
@@ -195,6 +196,13 @@ from backend.app.schemas.retrieval import (
     ImportedHybridRetrievalRequest,
 )
 from backend.app.schemas.risk_scoring import RiskFactorResponse, RiskScoreResponse
+from backend.app.schemas.security_review import (
+    ImportedSecurityReviewRequest,
+    SecurityFindingResponse,
+    SecurityReviewRequest,
+    SecurityReviewResponse,
+    SecurityReviewStatsResponse,
+)
 from backend.app.schemas.stack_trace import (
     StackTraceFrameResponse,
     StackTraceParseRequest,
@@ -283,6 +291,11 @@ from backend.app.services.repository_summary import (
     RepositorySummaryService,
 )
 from backend.app.services.retrieval import HybridRetrieval, HybridRetrievalService, RetrievalError
+from backend.app.services.security_review import (
+    SecurityReview,
+    SecurityReviewError,
+    SecurityReviewService,
+)
 from backend.app.services.stack_trace import (
     StackTrace,
     StackTraceParseError,
@@ -469,6 +482,42 @@ def to_architecture_review_response(result: ArchitectureReview) -> ArchitectureR
             impacted_file_count=result.stats.impacted_file_count,
             violation_count=result.stats.violation_count,
             finding_count=result.stats.finding_count,
+            risk_score=result.stats.risk_score,
+            risk_level=result.stats.risk_level,
+            confidence=result.stats.confidence,
+        ),
+    )
+
+
+def to_security_review_response(result: SecurityReview) -> SecurityReviewResponse:
+    """Convert security review output into an API response."""
+    return SecurityReviewResponse(
+        repository_path=result.repository_path,
+        focus=result.focus,
+        changed_files=list(result.changed_files),
+        findings=[
+            SecurityFindingResponse(
+                category=finding.category,
+                severity=finding.severity,
+                path=finding.path,
+                line=finding.line,
+                title=finding.title,
+                description=finding.description,
+                evidence=list(finding.evidence),
+                remediation=finding.remediation,
+            )
+            for finding in result.findings
+        ],
+        recommendations=list(result.recommendations),
+        summary=result.summary,
+        stats=SecurityReviewStatsResponse(
+            changed_file_count=result.stats.changed_file_count,
+            reviewed_file_count=result.stats.reviewed_file_count,
+            finding_count=result.stats.finding_count,
+            critical_count=result.stats.critical_count,
+            high_count=result.stats.high_count,
+            medium_count=result.stats.medium_count,
+            low_count=result.stats.low_count,
             risk_score=result.stats.risk_score,
             risk_level=result.stats.risk_level,
             confidence=result.stats.confidence,
@@ -1900,6 +1949,49 @@ def review_imported_repository_architecture(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except ArchitectureReviewError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/security-review", response_model=SecurityReviewResponse)
+def review_repository_security(
+    request: SecurityReviewRequest,
+    service: Annotated[SecurityReviewService, Depends(get_security_review_service)],
+) -> SecurityReviewResponse:
+    """Review changed files for static security risks."""
+    try:
+        return to_security_review_response(
+            service.review(
+                repository_path=request.repository_path,
+                changed_files=tuple(request.changed_files),
+                focus=request.focus,
+            )
+        )
+    except SecurityReviewError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/imports/{import_id}/security-review", response_model=SecurityReviewResponse)
+def review_imported_repository_security(
+    import_id: str,
+    request: ImportedSecurityReviewRequest,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[SecurityReviewService, Depends(get_security_review_service)],
+) -> SecurityReviewResponse:
+    """Review changed files for security risks in a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise SecurityReviewError("Repository import has no local path to review.")
+        return to_security_review_response(
+            service.review(
+                repository_path=Path(imported_repository.repository_path),
+                changed_files=tuple(request.changed_files),
+                focus=request.focus,
+            )
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except SecurityReviewError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

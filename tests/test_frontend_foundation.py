@@ -42,6 +42,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/components/readme-generator-panel.tsx",
         "frontend/components/repository-explorer.tsx",
         "frontend/components/repository-search-panel.tsx",
+        "frontend/components/security-review-panel.tsx",
         "frontend/components/stack-trace-panel.tsx",
         "frontend/components/technical-debt-panel.tsx",
         "frontend/tailwind.config.ts",
@@ -217,6 +218,17 @@ def test_frontend_architecture_review_uses_architecture_review_apis() -> None:
     assert "reviewArchitecture" in review_source
     assert "reviewImportedArchitecture" in review_source
     assert "ArchitectureReviewPanel" in review_source
+
+
+def test_frontend_security_review_uses_security_review_apis() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+    review_source = (ROOT / "frontend" / "components" / "security-review-panel.tsx").read_text()
+
+    assert "/api/repositories/security-review" in api_source
+    assert "/security-review" in api_source
+    assert "reviewSecurity" in review_source
+    assert "reviewImportedSecurity" in review_source
+    assert "SecurityReviewPanel" in review_source
 
 
 def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:

@@ -19,6 +19,7 @@ import { PullRequestReviewPanel } from '@/components/pull-request-review-panel';
 import { ReadmeGeneratorPanel } from '@/components/readme-generator-panel';
 import { RepositoryExplorer } from '@/components/repository-explorer';
 import { RepositorySearchPanel } from '@/components/repository-search-panel';
+import { SecurityReviewPanel } from '@/components/security-review-panel';
 import { StackTracePanel } from '@/components/stack-trace-panel';
 import { TechnicalDebtPanel } from '@/components/technical-debt-panel';
 import { Button } from '@/components/ui/button';
@@ -274,6 +275,19 @@ export function Dashboard() {
                 <Activity className="h-5 w-5 text-accent" />
               </div>
               <ArchitectureReviewPanel scan={scan} />
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Security Review</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Review changed files for secret exposure, unsafe execution, and weak controls.
+                  </p>
+                </div>
+                <Activity className="h-5 w-5 text-accent" />
+              </div>
+              <SecurityReviewPanel scan={scan} />
             </section>
 
             <section className="space-y-4">

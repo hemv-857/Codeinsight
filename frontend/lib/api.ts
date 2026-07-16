@@ -471,6 +471,40 @@ export interface ArchitectureReview {
   stats: ArchitectureReviewStats;
 }
 
+export interface SecurityFinding {
+  category: string;
+  severity: ReviewSeverity;
+  path: string;
+  line: number;
+  title: string;
+  description: string;
+  evidence: string[];
+  remediation: string;
+}
+
+export interface SecurityReviewStats {
+  changed_file_count: number;
+  reviewed_file_count: number;
+  finding_count: number;
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  risk_score: number;
+  risk_level: ReviewSeverity;
+  confidence: number;
+}
+
+export interface SecurityReview {
+  repository_path: string;
+  focus: string | null;
+  changed_files: string[];
+  findings: SecurityFinding[];
+  recommendations: string[];
+  summary: string;
+  stats: SecurityReviewStats;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -914,6 +948,52 @@ export async function reviewImportedArchitecture(
   }
 
   return response.json() as Promise<ArchitectureReview>;
+}
+
+export async function reviewSecurity(
+  repositoryPath: string,
+  changedFiles: string[],
+  focus?: string,
+): Promise<SecurityReview> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/security-review`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      repository_path: repositoryPath,
+      changed_files: changedFiles,
+      focus: focus || null,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Security review failed'));
+  }
+
+  return response.json() as Promise<SecurityReview>;
+}
+
+export async function reviewImportedSecurity(
+  importId: string,
+  changedFiles: string[],
+  focus?: string,
+): Promise<SecurityReview> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/repositories/imports/${importId}/security-review`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        changed_files: changedFiles,
+        focus: focus || null,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Imported security review failed'));
+  }
+
+  return response.json() as Promise<SecurityReview>;
 }
 
 export async function buildKnowledgeGraph(repositoryPath: string): Promise<KnowledgeGraphResult> {

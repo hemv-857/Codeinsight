@@ -43,6 +43,7 @@ from backend.app.services.repository_scanner import RepositoryScannerService
 from backend.app.services.repository_summary import RepositorySummaryService
 from backend.app.services.retrieval import HybridRetrievalService
 from backend.app.services.risk_scoring import RiskScoringService
+from backend.app.services.security_review import SecurityReviewService
 from backend.app.services.stack_trace import StackTraceParserService
 from backend.app.services.technical_debt import TechnicalDebtService
 from backend.app.services.vector_store import VectorStoreService
@@ -377,6 +378,13 @@ def get_pull_request_review_service(
         technical_debt=technical_debt,
         architecture_violations=architecture_violations,
     )
+
+
+def get_security_review_service(
+    scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
+) -> SecurityReviewService:
+    """Provide security review operations."""
+    return SecurityReviewService(scanner=scanner)
 
 
 @lru_cache(maxsize=16)
