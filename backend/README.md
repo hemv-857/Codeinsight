@@ -84,6 +84,8 @@ Repository import endpoints:
 - `POST /api/repositories/imports/{import_id}/architecture-docs`
 - `POST /api/repositories/mermaid-diagrams`
 - `POST /api/repositories/imports/{import_id}/mermaid-diagrams`
+- `POST /api/repositories/developer-onboarding`
+- `POST /api/repositories/imports/{import_id}/developer-onboarding`
 - `POST /api/repositories/question`
 - `POST /api/repositories/imports/{import_id}/question`
 - `POST /api/repositories/question/stream`
@@ -140,6 +142,9 @@ Markdown with overview, components, dependency flow, call flow, observations,
 evidence, and confidence metadata.
 Mermaid diagram endpoints generate architecture overview, dependency flow, and
 call flow diagram source from the same repository graph evidence.
+Developer onboarding endpoints combine generated README, architecture docs, and
+Mermaid diagrams into a first-day Markdown guide with setup, key files,
+workflow, validation checklist, and follow-up questions.
 Repository Q&A endpoints answer questions from repository summaries, architecture
 explanations, and available hybrid retrieval evidence.
 Streaming Q&A endpoints return Server-Sent Events with `answer.start`,

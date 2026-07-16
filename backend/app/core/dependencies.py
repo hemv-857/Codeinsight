@@ -24,6 +24,7 @@ from backend.app.services.bug_impact import BugImpactService
 from backend.app.services.circular_dependencies import CircularDependencyService
 from backend.app.services.conversation_memory import ConversationMemoryService
 from backend.app.services.dead_code import DeadCodeService
+from backend.app.services.developer_onboarding import DeveloperOnboardingService
 from backend.app.services.embedding import (
     EmbeddingClient,
     EmbeddingService,
@@ -326,6 +327,19 @@ def get_mermaid_diagram_service(
         architecture_docs=architecture_docs,
         dependency_graph=dependency_graph,
         call_graph=call_graph,
+    )
+
+
+def get_developer_onboarding_service(
+    readme_generator: Annotated[ReadmeGeneratorService, Depends(get_readme_generator_service)],
+    architecture_docs: Annotated[ArchitectureDocsService, Depends(get_architecture_docs_service)],
+    mermaid_diagrams: Annotated[MermaidDiagramService, Depends(get_mermaid_diagram_service)],
+) -> DeveloperOnboardingService:
+    """Provide developer onboarding documentation generation operations."""
+    return DeveloperOnboardingService(
+        readme_generator=readme_generator,
+        architecture_docs=architecture_docs,
+        mermaid_diagrams=mermaid_diagrams,
     )
 
 

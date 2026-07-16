@@ -36,6 +36,8 @@ The architecture docs panel exports architecture Markdown with components, depen
 
 The Mermaid diagrams panel exports architecture, dependency, and call-flow Mermaid source from repository graph evidence.
 
+The developer onboarding panel generates a first-day Markdown guide from repository facts, architecture docs, and Mermaid diagrams.
+
 The dependency graph panel can build file-level import graphs from a repository path or import ID and render internal dependencies, unresolved imports, and detected cycles.
 
 The knowledge graph panel can build and persist the repository architecture graph, then display graph size, relationship counts, and the selected persistence backend.

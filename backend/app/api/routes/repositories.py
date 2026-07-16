@@ -29,6 +29,7 @@ from backend.app.core.dependencies import (
     get_conversation_memory_service,
     get_dead_code_service,
     get_dependency_graph_service,
+    get_developer_onboarding_service,
     get_embedding_service,
     get_hybrid_retrieval_service,
     get_knowledge_graph_service,
@@ -103,6 +104,13 @@ from backend.app.schemas.dependency_graph import (
     DependencyGraphResponse,
     DependencyGraphStatsResponse,
     DependencyNodeResponse,
+)
+from backend.app.schemas.developer_onboarding import (
+    DeveloperOnboardingRequest,
+    DeveloperOnboardingSectionResponse,
+    DeveloperOnboardingStatsResponse,
+    GeneratedDeveloperOnboardingResponse,
+    ImportedDeveloperOnboardingRequest,
 )
 from backend.app.schemas.embedding import (
     ChunkEmbeddingResponse,
@@ -212,6 +220,11 @@ from backend.app.services.conversation_memory import (
     ConversationMemoryService,
 )
 from backend.app.services.dead_code import DeadCodeError, DeadCodeReport, DeadCodeService
+from backend.app.services.developer_onboarding import (
+    DeveloperOnboardingError,
+    DeveloperOnboardingService,
+    GeneratedDeveloperOnboarding,
+)
 from backend.app.services.embedding import EmbeddingError, EmbeddingService, RepositoryEmbeddings
 from backend.app.services.mermaid_diagrams import (
     MermaidDiagramError,
@@ -325,6 +338,33 @@ def to_mermaid_diagram_response(result: MermaidDiagramSet) -> MermaidDiagramSetR
             dependency_edge_count=result.stats.dependency_edge_count,
             call_edge_count=result.stats.call_edge_count,
             component_count=result.stats.component_count,
+        ),
+    )
+
+
+def to_developer_onboarding_response(
+    result: GeneratedDeveloperOnboarding,
+) -> GeneratedDeveloperOnboardingResponse:
+    """Convert generated developer onboarding documentation into an API response."""
+    return GeneratedDeveloperOnboardingResponse(
+        repository_path=result.repository_path,
+        title=result.title,
+        focus=result.focus,
+        markdown=result.markdown,
+        sections=[
+            DeveloperOnboardingSectionResponse(
+                heading=section.heading,
+                content=section.content,
+            )
+            for section in result.sections
+        ],
+        evidence_paths=list(result.evidence_paths),
+        stats=DeveloperOnboardingStatsResponse(
+            section_count=result.stats.section_count,
+            word_count=result.stats.word_count,
+            evidence_path_count=result.stats.evidence_path_count,
+            diagram_count=result.stats.diagram_count,
+            confidence=result.stats.confidence,
         ),
     )
 
@@ -1622,6 +1662,47 @@ def generate_imported_repository_mermaid_diagrams(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except MermaidDiagramError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/developer-onboarding", response_model=GeneratedDeveloperOnboardingResponse)
+def generate_repository_developer_onboarding(
+    request: DeveloperOnboardingRequest,
+    service: Annotated[DeveloperOnboardingService, Depends(get_developer_onboarding_service)],
+) -> GeneratedDeveloperOnboardingResponse:
+    """Generate developer onboarding documentation for a repository path."""
+    try:
+        return to_developer_onboarding_response(
+            service.generate(repository_path=request.repository_path, focus=request.focus)
+        )
+    except DeveloperOnboardingError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post(
+    "/imports/{import_id}/developer-onboarding",
+    response_model=GeneratedDeveloperOnboardingResponse,
+)
+def generate_imported_repository_developer_onboarding(
+    import_id: str,
+    request: ImportedDeveloperOnboardingRequest,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[DeveloperOnboardingService, Depends(get_developer_onboarding_service)],
+) -> GeneratedDeveloperOnboardingResponse:
+    """Generate developer onboarding documentation for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise DeveloperOnboardingError("Repository import has no local path to document.")
+        return to_developer_onboarding_response(
+            service.generate(
+                repository_path=Path(imported_repository.repository_path),
+                focus=request.focus,
+            )
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except DeveloperOnboardingError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

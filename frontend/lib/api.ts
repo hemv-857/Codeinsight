@@ -373,6 +373,29 @@ export interface MermaidDiagramSet {
   stats: MermaidDiagramStats;
 }
 
+export interface DeveloperOnboardingSection {
+  heading: string;
+  content: string;
+}
+
+export interface DeveloperOnboardingStats {
+  section_count: number;
+  word_count: number;
+  evidence_path_count: number;
+  diagram_count: number;
+  confidence: number;
+}
+
+export interface GeneratedDeveloperOnboarding {
+  repository_path: string;
+  title: string;
+  focus: string | null;
+  markdown: string;
+  sections: DeveloperOnboardingSection[];
+  evidence_paths: string[];
+  stats: DeveloperOnboardingStats;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -680,6 +703,45 @@ export async function generateImportedMermaidDiagrams(
   }
 
   return response.json() as Promise<MermaidDiagramSet>;
+}
+
+export async function generateDeveloperOnboarding(
+  repositoryPath: string,
+  focus?: string,
+): Promise<GeneratedDeveloperOnboarding> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/developer-onboarding`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repository_path: repositoryPath, focus: focus || null }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Developer onboarding generation failed'));
+  }
+
+  return response.json() as Promise<GeneratedDeveloperOnboarding>;
+}
+
+export async function generateImportedDeveloperOnboarding(
+  importId: string,
+  focus?: string,
+): Promise<GeneratedDeveloperOnboarding> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/repositories/imports/${importId}/developer-onboarding`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ focus: focus || null }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await responseError(response, 'Imported developer onboarding generation failed'),
+    );
+  }
+
+  return response.json() as Promise<GeneratedDeveloperOnboarding>;
 }
 
 export async function buildKnowledgeGraph(repositoryPath: string): Promise<KnowledgeGraphResult> {

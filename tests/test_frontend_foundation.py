@@ -31,6 +31,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/components/dashboard.tsx",
         "frontend/components/circular-dependencies-panel.tsx",
         "frontend/components/dead-code-panel.tsx",
+        "frontend/components/developer-onboarding-panel.tsx",
         "frontend/components/dependency-graph-panel.tsx",
         "frontend/components/graph-control-toggle.tsx",
         "frontend/components/knowledge-graph-panel.tsx",
@@ -179,6 +180,19 @@ def test_frontend_mermaid_diagrams_uses_mermaid_apis() -> None:
     assert "generateMermaidDiagrams" in diagram_source
     assert "generateImportedMermaidDiagrams" in diagram_source
     assert "MermaidDiagramsPanel" in diagram_source
+
+
+def test_frontend_developer_onboarding_uses_onboarding_apis() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+    onboarding_source = (
+        ROOT / "frontend" / "components" / "developer-onboarding-panel.tsx"
+    ).read_text()
+
+    assert "/api/repositories/developer-onboarding" in api_source
+    assert "/developer-onboarding" in api_source
+    assert "generateDeveloperOnboarding" in onboarding_source
+    assert "generateImportedDeveloperOnboarding" in onboarding_source
+    assert "DeveloperOnboardingPanel" in onboarding_source
 
 
 def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:

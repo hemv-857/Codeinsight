@@ -9,6 +9,7 @@ import { ArchitectureDocsPanel } from '@/components/architecture-docs-panel';
 import { BugImpactPanel } from '@/components/bug-impact-panel';
 import { CircularDependenciesPanel } from '@/components/circular-dependencies-panel';
 import { DeadCodePanel } from '@/components/dead-code-panel';
+import { DeveloperOnboardingPanel } from '@/components/developer-onboarding-panel';
 import { DependencyGraphPanel } from '@/components/dependency-graph-panel';
 import { HealthBadge } from '@/components/health-badge';
 import { KnowledgeGraphPanel } from '@/components/knowledge-graph-panel';
@@ -232,6 +233,19 @@ export function Dashboard() {
                 <FileText className="h-5 w-5 text-accent" />
               </div>
               <MermaidDiagramsPanel scan={scan} />
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Developer Onboarding</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Generate a first-day guide from repository facts, docs, and diagrams.
+                  </p>
+                </div>
+                <FileText className="h-5 w-5 text-accent" />
+              </div>
+              <DeveloperOnboardingPanel scan={scan} />
             </section>
 
             <section className="space-y-4">
