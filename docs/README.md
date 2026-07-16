@@ -1,3 +1,8 @@
-# Docs
+# Forge AI Docs
 
-Generated and hand-authored product documentation will live here.
+Release documentation:
+
+- [Architecture diagrams](architecture-diagrams.md)
+- [Demo repository setup](demo-repository.md)
+- [Production release checklist](production-release.md)
+- [Dashboard screenshot](screenshots/dashboard.png)
