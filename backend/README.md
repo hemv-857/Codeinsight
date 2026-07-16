@@ -66,6 +66,8 @@ Repository import endpoints:
 - `GET /api/repositories/imports/{import_id}/summary`
 - `POST /api/repositories/architecture-explanation`
 - `POST /api/repositories/imports/{import_id}/architecture-explanation`
+- `POST /api/repositories/question`
+- `POST /api/repositories/imports/{import_id}/question`
 
 Parse responses include compact AST metadata and extracted source symbols.
 Supported parser languages are C, C++, Go, Java, JavaScript, Python, Rust, and TypeScript.
@@ -93,3 +95,5 @@ Repository summary endpoints generate grounded repository overviews from scanner
 parser, dependency graph, call graph, and vector index metadata.
 Architecture explanation endpoints turn those grounded facts into component,
 dependency-flow, call-flow, observation, evidence, and confidence sections.
+Repository Q&A endpoints answer questions from repository summaries, architecture
+explanations, and available hybrid retrieval evidence.

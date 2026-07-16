@@ -26,6 +26,7 @@ from backend.app.services.embedding import (
 from backend.app.services.metadata import MetadataService
 from backend.app.services.repository_chunker import RepositoryChunkerService
 from backend.app.services.repository_import import RepositoryImportService
+from backend.app.services.repository_qa import RepositoryQAService
 from backend.app.services.repository_scanner import RepositoryScannerService
 from backend.app.services.repository_summary import RepositorySummaryService
 from backend.app.services.retrieval import HybridRetrievalService
@@ -208,6 +209,21 @@ def get_architecture_explanation_service(
 ) -> ArchitectureExplanationService:
     """Provide architecture explanation operations."""
     return ArchitectureExplanationService(summary_service=summary_service)
+
+
+def get_repository_qa_service(
+    summary_service: Annotated[RepositorySummaryService, Depends(get_repository_summary_service)],
+    architecture_service: Annotated[
+        ArchitectureExplanationService, Depends(get_architecture_explanation_service)
+    ],
+    retrieval_service: Annotated[HybridRetrievalService, Depends(get_hybrid_retrieval_service)],
+) -> RepositoryQAService:
+    """Provide repository Q&A operations."""
+    return RepositoryQAService(
+        summary_service=summary_service,
+        architecture_service=architecture_service,
+        retrieval_service=retrieval_service,
+    )
 
 
 @lru_cache(maxsize=16)

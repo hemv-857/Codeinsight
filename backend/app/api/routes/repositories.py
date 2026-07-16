@@ -26,6 +26,7 @@ from backend.app.core.dependencies import (
     get_metadata_service,
     get_repository_chunker_service,
     get_repository_import_service,
+    get_repository_qa_service,
     get_repository_scanner_service,
     get_repository_summary_service,
     get_tree_sitter_parser_service,
@@ -80,6 +81,12 @@ from backend.app.schemas.repository_chunk import (
     SkippedChunkFileResponse,
 )
 from backend.app.schemas.repository_import import RepositoryImportRequest, RepositoryImportResponse
+from backend.app.schemas.repository_qa import (
+    ImportedRepositoryQARequest,
+    RepositoryQARequest,
+    RepositoryQAResponse,
+    RepositoryQASnippetResponse,
+)
 from backend.app.schemas.repository_scan import RepositoryScanRequest, RepositoryScanResult
 from backend.app.schemas.repository_summary import (
     RepositorySummaryFileResponse,
@@ -110,6 +117,11 @@ from backend.app.services.repository_chunker import (
     RepositoryChunks,
 )
 from backend.app.services.repository_import import RepositoryImportError, RepositoryImportService
+from backend.app.services.repository_qa import (
+    RepositoryQAAnswer,
+    RepositoryQAError,
+    RepositoryQAService,
+)
 from backend.app.services.repository_scanner import RepositoryScanError, RepositoryScannerService
 from backend.app.services.repository_summary import (
     RepositorySummary,
@@ -144,6 +156,29 @@ def to_architecture_explanation_response(
         observations=list(result.observations),
         evidence_paths=list(result.evidence_paths),
         confidence=result.confidence,
+    )
+
+
+def to_repository_qa_response(result: RepositoryQAAnswer) -> RepositoryQAResponse:
+    """Convert repository Q&A output into an API response."""
+    return RepositoryQAResponse(
+        repository_path=result.repository_path,
+        question=result.question,
+        answer=result.answer,
+        mode=result.mode,
+        confidence=result.confidence,
+        supporting_files=list(result.supporting_files),
+        supporting_symbols=list(result.supporting_symbols),
+        snippets=[
+            RepositoryQASnippetResponse(
+                path=snippet.path,
+                start_line=snippet.start_line,
+                end_line=snippet.end_line,
+                content=snippet.content,
+                score=snippet.score,
+            )
+            for snippet in result.snippets
+        ],
     )
 
 
@@ -838,6 +873,49 @@ def explain_imported_repository_architecture(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except (RepositoryScanError, RepositorySummaryError, ArchitectureExplanationError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/question", response_model=RepositoryQAResponse)
+def answer_repository_question(
+    request: RepositoryQARequest,
+    service: Annotated[RepositoryQAService, Depends(get_repository_qa_service)],
+) -> RepositoryQAResponse:
+    """Answer a repository question using grounded repository context."""
+    try:
+        return to_repository_qa_response(
+            service.answer(
+                repository_path=request.repository_path,
+                question=request.question,
+                limit=request.limit,
+            )
+        )
+    except (RepositoryScanError, RepositorySummaryError, RepositoryQAError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/imports/{import_id}/question", response_model=RepositoryQAResponse)
+def answer_imported_repository_question(
+    import_id: str,
+    request: ImportedRepositoryQARequest,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[RepositoryQAService, Depends(get_repository_qa_service)],
+) -> RepositoryQAResponse:
+    """Answer a repository question for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise RepositoryQAError("Repository import has no local path to answer from.")
+        return to_repository_qa_response(
+            service.answer(
+                repository_path=Path(imported_repository.repository_path),
+                question=request.question,
+                limit=request.limit,
+            )
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (RepositoryScanError, RepositorySummaryError, RepositoryQAError) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 
