@@ -34,6 +34,7 @@ const workflow = [
 
 export function Dashboard() {
   const [scan, setScan] = useState<RepositoryScanResult | null>(null);
+  const sourceFileCount = scan?.files.filter((file) => file.language !== null).length ?? 0;
   const metrics = [
     {
       label: 'Files Indexed',
@@ -49,8 +50,36 @@ export function Dashboard() {
     },
     {
       label: 'Source Files',
-      value: String(scan?.files.filter((file) => file.language !== null).length ?? 0),
+      value: String(sourceFileCount),
       detail: scan ? 'Tree-sitter supported candidates' : 'awaiting parser pipeline',
+    },
+  ];
+  const readiness = [
+    {
+      icon: GitBranch,
+      label: 'Repository',
+      value: scan ? 'Indexed' : 'Waiting',
+      detail: scan
+        ? `${scan.directories.length} directories`
+        : 'Import a local, GitHub, or ZIP repo',
+    },
+    {
+      icon: Braces,
+      label: 'Parser',
+      value: sourceFileCount > 0 ? 'Ready' : 'Pending',
+      detail: scan ? `${sourceFileCount} source files` : 'Runs after scanning',
+    },
+    {
+      icon: Network,
+      label: 'Graphs',
+      value: scan ? 'Available' : 'Pending',
+      detail: 'Dependency and knowledge graph tools',
+    },
+    {
+      icon: Activity,
+      label: 'Quality',
+      value: scan ? 'Ready' : 'Pending',
+      detail: 'Debt, risk, dead code, and review signals',
     },
   ];
 
@@ -93,6 +122,30 @@ export function Dashboard() {
                 <p className="mt-3 text-3xl font-semibold">{metric.value}</p>
                 <p className="mt-2 text-sm text-muted-foreground">{metric.detail}</p>
               </motion.div>
+            ))}
+          </section>
+
+          <section
+            aria-label="Repository readiness"
+            className="grid gap-px overflow-hidden rounded-lg border border-border bg-border shadow-2xl shadow-black/20 md:grid-cols-4"
+          >
+            {readiness.map((item) => (
+              <div key={item.label} className="bg-card/95 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted">
+                      <item.icon className="h-4 w-4 text-accent" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{item.label}</p>
+                      <p className="truncate text-xs text-muted-foreground">{item.detail}</p>
+                    </div>
+                  </div>
+                  <span className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-accent">
+                    {item.value}
+                  </span>
+                </div>
+              </div>
             ))}
           </section>
 

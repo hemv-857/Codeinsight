@@ -34,13 +34,46 @@ body {
 body {
   margin: 0;
   background:
+    linear-gradient(hsl(210 30% 96% / 3%) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(210 30% 96% / 3%) 1px, transparent 1px),
     radial-gradient(circle at top left, hsl(174 64% 13% / 48%), transparent 32rem),
     linear-gradient(135deg, hsl(var(--background)), hsl(224 24% 9%));
+  background-size:
+    42px 42px,
+    42px 42px,
+    auto,
+    auto;
   color: hsl(var(--foreground));
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 .react-flow__attribution {
   display: none;
+}
+
+::selection {
+  background: hsl(var(--accent) / 40%);
+  color: hsl(var(--foreground));
+}
+
+::-webkit-scrollbar {
+  height: 0.75rem;
+  width: 0.75rem;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid hsl(var(--background));
+  border-radius: 999px;
+  background: hsl(var(--border));
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
 }
 
 .skip-link {

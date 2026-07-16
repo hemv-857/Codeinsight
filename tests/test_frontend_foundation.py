@@ -79,6 +79,18 @@ def test_frontend_api_uses_structured_error_envelopes() -> None:
     assert "with status ${response.status}`);" not in api_source
 
 
+def test_frontend_dashboard_has_polished_readiness_surface() -> None:
+    dashboard_source = (ROOT / "frontend" / "components" / "dashboard.tsx").read_text()
+    styles_source = (ROOT / "frontend" / "app" / "globals.css").read_text()
+
+    assert 'aria-label="Repository readiness"' in dashboard_source
+    assert "const readiness" in dashboard_source
+    assert "shadow-2xl" in dashboard_source
+    assert "::selection" in styles_source
+    assert "::-webkit-scrollbar" in styles_source
+    assert "text-rendering: optimizeLegibility" in styles_source
+
+
 def test_frontend_repository_explorer_uses_scan_apis() -> None:
     api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
     explorer_source = (ROOT / "frontend" / "components" / "repository-explorer.tsx").read_text()
