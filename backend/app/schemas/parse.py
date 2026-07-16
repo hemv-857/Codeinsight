@@ -35,6 +35,20 @@ class SourceSymbolResponse(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
+class SourceCallResponse(BaseModel):
+    """Call expression extracted from a parsed source file."""
+
+    caller: str | None = None
+    callee: str
+    line: int = Field(ge=1)
+    column: int = Field(ge=0)
+    end_line: int = Field(ge=1)
+    end_column: int = Field(ge=0)
+    recursive: bool = False
+
+    model_config = ConfigDict(frozen=True)
+
+
 class ParseTreeResponse(BaseModel):
     """Compact Tree-sitter parse result."""
 
@@ -48,6 +62,7 @@ class ParseTreeResponse(BaseModel):
     has_error: bool
     named_child_count: int = Field(ge=0)
     symbols: list[SourceSymbolResponse] = Field(default_factory=list)
+    calls: list[SourceCallResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(frozen=True)
 

@@ -37,8 +37,12 @@ Repository import endpoints:
 - `POST /api/repositories/parse-import/{import_id}`
 - `POST /api/repositories/dependency-graph`
 - `GET /api/repositories/imports/{import_id}/dependency-graph`
+- `POST /api/repositories/call-graph`
+- `GET /api/repositories/imports/{import_id}/call-graph`
 
 Parse responses include compact AST metadata and extracted source symbols.
 Supported parser languages are C, C++, Go, Java, JavaScript, Python, Rust, and TypeScript.
 Dependency graph responses include file nodes, dependency edges, external imports,
 unresolved imports, circular dependencies, and graph statistics.
+Call graph responses include callable nodes, call edges, unresolved calls, recursive
+calls, and graph statistics.

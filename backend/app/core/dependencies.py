@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends
+from graph.call_graph import CallGraphService
 from graph.dependency_graph import DependencyGraphService
 from parser.tree_sitter_parser import TreeSitterParserService
 
@@ -78,3 +79,11 @@ def get_dependency_graph_service(
 ) -> DependencyGraphService:
     """Provide dependency graph construction operations to API routes."""
     return DependencyGraphService(scanner=scanner, parser=parser)
+
+
+def get_call_graph_service(
+    scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
+    parser: Annotated[TreeSitterParserService, Depends(get_tree_sitter_parser_service)],
+) -> CallGraphService:
+    """Provide call graph construction operations to API routes."""
+    return CallGraphService(scanner=scanner, parser=parser)

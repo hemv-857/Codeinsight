@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from graph.call_graph import CallGraph, CallGraphError, CallGraphService
 from graph.dependency_graph import DependencyGraph, DependencyGraphError, DependencyGraphService
 from parser.tree_sitter_parser import (
     ParseTreeSummary,
@@ -10,11 +11,19 @@ from parser.tree_sitter_parser import (
 )
 
 from backend.app.core.dependencies import (
+    get_call_graph_service,
     get_dependency_graph_service,
     get_metadata_service,
     get_repository_import_service,
     get_repository_scanner_service,
     get_tree_sitter_parser_service,
+)
+from backend.app.schemas.call_graph import (
+    CallGraphEdgeResponse,
+    CallGraphNodeResponse,
+    CallGraphRequest,
+    CallGraphResponse,
+    CallGraphStatsResponse,
 )
 from backend.app.schemas.dependency_graph import (
     DependencyEdgeResponse,
@@ -28,6 +37,7 @@ from backend.app.schemas.parse import (
     ParseFileRequest,
     ParseRepositoryResponse,
     ParseTreeResponse,
+    SourceCallResponse,
     SourcePoint,
     SourceSymbolResponse,
 )
@@ -38,6 +48,44 @@ from backend.app.services.repository_import import RepositoryImportError, Reposi
 from backend.app.services.repository_scanner import RepositoryScanError, RepositoryScannerService
 
 router = APIRouter(prefix="/api/repositories", tags=["repositories"])
+
+
+def to_call_graph_response(graph: CallGraph) -> CallGraphResponse:
+    """Convert call-graph domain output into an API response."""
+    return CallGraphResponse(
+        repository_path=graph.repository_path,
+        nodes=[
+            CallGraphNodeResponse(
+                id=node.id,
+                name=node.name,
+                kind=node.kind,
+                path=node.path,
+                line=node.line,
+                parent=node.parent,
+            )
+            for node in graph.nodes
+        ],
+        edges=[
+            CallGraphEdgeResponse(
+                source=edge.source,
+                target=edge.target,
+                caller=edge.caller,
+                callee=edge.callee,
+                path=edge.path,
+                line=edge.line,
+                recursive=edge.recursive,
+            )
+            for edge in graph.edges
+        ],
+        unresolved_calls=list(graph.unresolved_calls),
+        stats=CallGraphStatsResponse(
+            callable_count=graph.stats.callable_count,
+            call_count=graph.stats.call_count,
+            resolved_call_count=graph.stats.resolved_call_count,
+            unresolved_call_count=graph.stats.unresolved_call_count,
+            recursive_call_count=graph.stats.recursive_call_count,
+        ),
+    )
 
 
 def to_dependency_graph_response(graph: DependencyGraph) -> DependencyGraphResponse:
@@ -96,6 +144,18 @@ def to_parse_response(result: ParseTreeSummary) -> ParseTreeResponse:
                 inherits=list(symbol.inherits),
             )
             for symbol in result.symbols
+        ],
+        calls=[
+            SourceCallResponse(
+                caller=call.caller,
+                callee=call.callee,
+                line=call.line,
+                column=call.column,
+                end_line=call.end_line,
+                end_column=call.end_column,
+                recursive=call.recursive,
+            )
+            for call in result.calls
         ],
     )
 
@@ -272,6 +332,36 @@ def build_dependency_graph(
     try:
         return to_dependency_graph_response(service.build(request.repository_path))
     except (RepositoryScanError, DependencyGraphError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/call-graph", response_model=CallGraphResponse)
+def build_call_graph(
+    request: CallGraphRequest,
+    service: Annotated[CallGraphService, Depends(get_call_graph_service)],
+) -> CallGraphResponse:
+    """Build a function-level call graph for a repository path."""
+    try:
+        return to_call_graph_response(service.build(request.repository_path))
+    except (RepositoryScanError, CallGraphError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get("/imports/{import_id}/call-graph", response_model=CallGraphResponse)
+def build_imported_repository_call_graph(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[CallGraphService, Depends(get_call_graph_service)],
+) -> CallGraphResponse:
+    """Build a call graph for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise CallGraphError("Repository import has no local path to graph.")
+        return to_call_graph_response(service.build(Path(imported_repository.repository_path)))
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (RepositoryScanError, CallGraphError) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

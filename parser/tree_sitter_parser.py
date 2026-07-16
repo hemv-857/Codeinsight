@@ -39,6 +39,7 @@ class ParseTreeSummary:
     has_error: bool
     named_child_count: int
     symbols: tuple["SourceSymbol", ...]
+    calls: tuple["SourceCall", ...]
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,19 @@ class SourceSymbol:
     source: str | None = None
     exported: bool = False
     inherits: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class SourceCall:
+    """Call expression extracted from a supported syntax tree."""
+
+    caller: str | None
+    callee: str
+    line: int
+    column: int
+    end_line: int
+    end_column: int
+    recursive: bool = False
 
 
 @dataclass(frozen=True)
@@ -105,6 +119,7 @@ class TreeSitterParserService:
         tree = parser.parse(source)
         root = tree.root_node
         symbols = tuple(self._extract_symbols(root, source))
+        calls = tuple(self._extract_calls(root, source))
         return ParseTreeSummary(
             path=str(source_path),
             language=definition.name,
@@ -116,6 +131,7 @@ class TreeSitterParserService:
             has_error=root.has_error,
             named_child_count=root.named_child_count,
             symbols=symbols,
+            calls=calls,
         )
 
     def supports_path(self, path: Path) -> bool:
@@ -133,6 +149,38 @@ class TreeSitterParserService:
         symbols: list[SourceSymbol] = []
         self._walk_symbols(root, source, symbols, parent=None, exported=False)
         return symbols
+
+    def _extract_calls(self, root: Node, source: bytes) -> list[SourceCall]:
+        calls: list[SourceCall] = []
+        self._walk_calls(root, source, calls, caller=None)
+        return calls
+
+    def _walk_calls(
+        self,
+        node: Node,
+        source: bytes,
+        calls: list[SourceCall],
+        *,
+        caller: str | None,
+    ) -> None:
+        next_caller = self._scope_name(node, source) or caller
+        if node.type in {"call", "call_expression", "method_invocation"}:
+            callee = self._call_name(node, source)
+            if callee is not None:
+                calls.append(
+                    SourceCall(
+                        caller=caller,
+                        callee=callee,
+                        line=node.start_point.row + 1,
+                        column=node.start_point.column,
+                        end_line=node.end_point.row + 1,
+                        end_column=node.end_point.column,
+                        recursive=caller == callee,
+                    )
+                )
+
+        for child in node.named_children:
+            self._walk_calls(child, source, calls, caller=next_caller)
 
     def _walk_symbols(
         self,
@@ -261,6 +309,30 @@ class TreeSitterParserService:
     ) -> None:
         for child in node.named_children:
             self._walk_symbols(child, source, symbols, parent=parent, exported=exported)
+
+    def _scope_name(self, node: Node, source: bytes) -> str | None:
+        if node.type in {
+            "function_declaration",
+            "function_definition",
+            "function_item",
+            "function_signature_item",
+            "method_declaration",
+            "method_definition",
+        }:
+            return self._field_text(node, source, "name") or self._declarator_name(node, source)
+        return None
+
+    def _call_name(self, node: Node, source: bytes) -> str | None:
+        name = self._field_text(node, source, "name")
+        if name is not None:
+            return name
+        function = node.child_by_field_name("function")
+        if function is None:
+            return None
+        field = self._field_text(function, source, "field")
+        if field is not None:
+            return field
+        return self._last_identifier_text(function, source) or self._node_text(function, source)
 
     def _extract_import_symbols(self, node: Node, source: bytes) -> list[SourceSymbol]:
         if node.type == "import_from_statement":
