@@ -32,6 +32,8 @@ The bug impact panel predicts likely root cause, affected files, risk level, and
 
 The README generator panel creates repository-grounded Markdown from scanner, parser, dependency graph, call graph, and embedding metadata.
 
+The architecture docs panel exports architecture Markdown with components, dependency flow, call flow, observations, evidence paths, and confidence.
+
 The dependency graph panel can build file-level import graphs from a repository path or import ID and render internal dependencies, unresolved imports, and detected cycles.
 
 The knowledge graph panel can build and persist the repository architecture graph, then display graph size, relationship counts, and the selected persistence backend.

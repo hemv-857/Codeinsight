@@ -20,6 +20,7 @@ from parser.tree_sitter_parser import (
 )
 
 from backend.app.core.dependencies import (
+    get_architecture_docs_service,
     get_architecture_explanation_service,
     get_architecture_violation_service,
     get_bug_impact_service,
@@ -44,6 +45,13 @@ from backend.app.core.dependencies import (
     get_vector_store_service,
 )
 from backend.app.repositories.conversation_memory import ConversationSession
+from backend.app.schemas.architecture_docs import (
+    ArchitectureDocSectionResponse,
+    ArchitectureDocsRequest,
+    ArchitectureDocStatsResponse,
+    GeneratedArchitectureDocResponse,
+    ImportedArchitectureDocsRequest,
+)
 from backend.app.schemas.architecture_explanation import (
     ArchitectureComponentResponse,
     ArchitectureExplanationRequest,
@@ -166,6 +174,11 @@ from backend.app.schemas.technical_debt import (
     TechnicalDebtStatsResponse,
 )
 from backend.app.schemas.vector_store import VectorStoreRequest, VectorStoreResponse
+from backend.app.services.architecture_docs import (
+    ArchitectureDocsError,
+    ArchitectureDocsService,
+    GeneratedArchitectureDoc,
+)
 from backend.app.services.architecture_explanation import (
     ArchitectureExplanation,
     ArchitectureExplanationError,
@@ -253,6 +266,30 @@ def to_architecture_explanation_response(
         observations=list(result.observations),
         evidence_paths=list(result.evidence_paths),
         confidence=result.confidence,
+    )
+
+
+def to_architecture_doc_response(
+    result: GeneratedArchitectureDoc,
+) -> GeneratedArchitectureDocResponse:
+    """Convert generated architecture documentation into an API response."""
+    return GeneratedArchitectureDocResponse(
+        repository_path=result.repository_path,
+        title=result.title,
+        focus=result.focus,
+        markdown=result.markdown,
+        sections=[
+            ArchitectureDocSectionResponse(heading=section.heading, content=section.content)
+            for section in result.sections
+        ],
+        evidence_paths=list(result.evidence_paths),
+        stats=ArchitectureDocStatsResponse(
+            section_count=result.stats.section_count,
+            word_count=result.stats.word_count,
+            component_count=result.stats.component_count,
+            evidence_path_count=result.stats.evidence_path_count,
+            confidence=result.stats.confidence,
+        ),
     )
 
 
@@ -1457,6 +1494,57 @@ def explain_imported_repository_architecture(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except (RepositoryScanError, RepositorySummaryError, ArchitectureExplanationError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/architecture-docs", response_model=GeneratedArchitectureDocResponse)
+def generate_repository_architecture_docs(
+    request: ArchitectureDocsRequest,
+    service: Annotated[ArchitectureDocsService, Depends(get_architecture_docs_service)],
+) -> GeneratedArchitectureDocResponse:
+    """Generate Markdown architecture documentation for a repository path."""
+    try:
+        return to_architecture_doc_response(
+            service.generate(repository_path=request.repository_path, focus=request.focus)
+        )
+    except (
+        RepositoryScanError,
+        RepositorySummaryError,
+        ArchitectureExplanationError,
+        ArchitectureDocsError,
+    ) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post(
+    "/imports/{import_id}/architecture-docs",
+    response_model=GeneratedArchitectureDocResponse,
+)
+def generate_imported_repository_architecture_docs(
+    import_id: str,
+    request: ImportedArchitectureDocsRequest,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[ArchitectureDocsService, Depends(get_architecture_docs_service)],
+) -> GeneratedArchitectureDocResponse:
+    """Generate Markdown architecture documentation for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise ArchitectureDocsError("Repository import has no local path to document.")
+        return to_architecture_doc_response(
+            service.generate(
+                repository_path=Path(imported_repository.repository_path),
+                focus=request.focus,
+            )
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (
+        RepositoryScanError,
+        RepositorySummaryError,
+        ArchitectureExplanationError,
+        ArchitectureDocsError,
+    ) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

@@ -17,6 +17,7 @@ from backend.app.core.config import Settings, get_cached_settings
 from backend.app.repositories.conversation_memory import ConversationMemoryRepository
 from backend.app.repositories.metadata import MetadataRepository
 from backend.app.repositories.vector_store import VectorStoreRepository
+from backend.app.services.architecture_docs import ArchitectureDocsService
 from backend.app.services.architecture_explanation import ArchitectureExplanationService
 from backend.app.services.architecture_violations import ArchitectureViolationService
 from backend.app.services.bug_impact import BugImpactService
@@ -281,6 +282,15 @@ def get_architecture_explanation_service(
 ) -> ArchitectureExplanationService:
     """Provide architecture explanation operations."""
     return ArchitectureExplanationService(summary_service=summary_service)
+
+
+def get_architecture_docs_service(
+    architecture_service: Annotated[
+        ArchitectureExplanationService, Depends(get_architecture_explanation_service)
+    ],
+) -> ArchitectureDocsService:
+    """Provide architecture documentation generation operations."""
+    return ArchitectureDocsService(architecture_service=architecture_service)
 
 
 def get_repository_qa_service(

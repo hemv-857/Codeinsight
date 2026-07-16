@@ -329,6 +329,29 @@ export interface GeneratedReadme {
   stats: GeneratedReadmeStats;
 }
 
+export interface ArchitectureDocSection {
+  heading: string;
+  content: string;
+}
+
+export interface ArchitectureDocStats {
+  section_count: number;
+  word_count: number;
+  component_count: number;
+  evidence_path_count: number;
+  confidence: number;
+}
+
+export interface GeneratedArchitectureDoc {
+  repository_path: string;
+  title: string;
+  focus: string | null;
+  markdown: string;
+  sections: ArchitectureDocSection[];
+  evidence_paths: string[];
+  stats: ArchitectureDocStats;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -562,6 +585,43 @@ export async function generateImportedReadme(importId: string): Promise<Generate
   }
 
   return response.json() as Promise<GeneratedReadme>;
+}
+
+export async function generateArchitectureDocs(
+  repositoryPath: string,
+  focus?: string,
+): Promise<GeneratedArchitectureDoc> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/architecture-docs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repository_path: repositoryPath, focus: focus || null }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Architecture docs generation failed'));
+  }
+
+  return response.json() as Promise<GeneratedArchitectureDoc>;
+}
+
+export async function generateImportedArchitectureDocs(
+  importId: string,
+  focus?: string,
+): Promise<GeneratedArchitectureDoc> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/repositories/imports/${importId}/architecture-docs`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ focus: focus || null }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Imported architecture docs generation failed'));
+  }
+
+  return response.json() as Promise<GeneratedArchitectureDoc>;
 }
 
 export async function buildKnowledgeGraph(repositoryPath: string): Promise<KnowledgeGraphResult> {

@@ -5,6 +5,7 @@ import { Activity, Braces, FileText, GitBranch, Network, Search } from 'lucide-r
 import { useState } from 'react';
 
 import { ArchitectureViolationsPanel } from '@/components/architecture-violations-panel';
+import { ArchitectureDocsPanel } from '@/components/architecture-docs-panel';
 import { BugImpactPanel } from '@/components/bug-impact-panel';
 import { CircularDependenciesPanel } from '@/components/circular-dependencies-panel';
 import { DeadCodePanel } from '@/components/dead-code-panel';
@@ -204,6 +205,19 @@ export function Dashboard() {
                 <FileText className="h-5 w-5 text-accent" />
               </div>
               <ReadmeGeneratorPanel scan={scan} />
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Architecture Docs</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Export architecture overview, components, flows, observations, and evidence.
+                  </p>
+                </div>
+                <FileText className="h-5 w-5 text-accent" />
+              </div>
+              <ArchitectureDocsPanel scan={scan} />
             </section>
 
             <section className="space-y-4">

@@ -25,6 +25,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/app/layout.tsx",
         "frontend/app/page.tsx",
         "frontend/app/globals.css",
+        "frontend/components/architecture-docs-panel.tsx",
         "frontend/components/architecture-violations-panel.tsx",
         "frontend/components/bug-impact-panel.tsx",
         "frontend/components/dashboard.tsx",
@@ -155,6 +156,17 @@ def test_frontend_readme_generator_uses_readme_apis() -> None:
     assert "generateReadme" in readme_source
     assert "generateImportedReadme" in readme_source
     assert "ReadmeGeneratorPanel" in readme_source
+
+
+def test_frontend_architecture_docs_uses_architecture_docs_apis() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+    docs_source = (ROOT / "frontend" / "components" / "architecture-docs-panel.tsx").read_text()
+
+    assert "/api/repositories/architecture-docs" in api_source
+    assert "/architecture-docs" in api_source
+    assert "generateArchitectureDocs" in docs_source
+    assert "generateImportedArchitectureDocs" in docs_source
+    assert "ArchitectureDocsPanel" in docs_source
 
 
 def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:

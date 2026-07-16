@@ -80,6 +80,8 @@ Repository import endpoints:
 - `GET /api/repositories/imports/{import_id}/readme`
 - `POST /api/repositories/architecture-explanation`
 - `POST /api/repositories/imports/{import_id}/architecture-explanation`
+- `POST /api/repositories/architecture-docs`
+- `POST /api/repositories/imports/{import_id}/architecture-docs`
 - `POST /api/repositories/question`
 - `POST /api/repositories/imports/{import_id}/question`
 - `POST /api/repositories/question/stream`
@@ -131,6 +133,9 @@ for overview, stats, languages, key files, notable symbols, architecture
 signals, setup entry points, and Forge AI evidence.
 Architecture explanation endpoints turn those grounded facts into component,
 dependency-flow, call-flow, observation, evidence, and confidence sections.
+Architecture documentation endpoints export those grounded architecture facts as
+Markdown with overview, components, dependency flow, call flow, observations,
+evidence, and confidence metadata.
 Repository Q&A endpoints answer questions from repository summaries, architecture
 explanations, and available hybrid retrieval evidence.
 Streaming Q&A endpoints return Server-Sent Events with `answer.start`,
