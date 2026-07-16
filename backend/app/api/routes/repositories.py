@@ -26,6 +26,7 @@ from backend.app.core.dependencies import (
     get_repository_chunker_service,
     get_repository_import_service,
     get_repository_scanner_service,
+    get_repository_summary_service,
     get_tree_sitter_parser_service,
     get_vector_store_service,
 )
@@ -73,6 +74,14 @@ from backend.app.schemas.repository_chunk import (
 )
 from backend.app.schemas.repository_import import RepositoryImportRequest, RepositoryImportResponse
 from backend.app.schemas.repository_scan import RepositoryScanRequest, RepositoryScanResult
+from backend.app.schemas.repository_summary import (
+    RepositorySummaryFileResponse,
+    RepositorySummaryLanguageResponse,
+    RepositorySummaryRequest,
+    RepositorySummaryResponse,
+    RepositorySummaryStatsResponse,
+    RepositorySummarySymbolResponse,
+)
 from backend.app.schemas.retrieval import (
     HybridRetrievalRequest,
     HybridRetrievalResponse,
@@ -90,6 +99,11 @@ from backend.app.services.repository_chunker import (
 )
 from backend.app.services.repository_import import RepositoryImportError, RepositoryImportService
 from backend.app.services.repository_scanner import RepositoryScanError, RepositoryScannerService
+from backend.app.services.repository_summary import (
+    RepositorySummary,
+    RepositorySummaryError,
+    RepositorySummaryService,
+)
 from backend.app.services.retrieval import HybridRetrieval, HybridRetrievalService, RetrievalError
 from backend.app.services.vector_store import VectorStoreResult, VectorStoreService
 
@@ -173,6 +187,59 @@ def to_hybrid_retrieval_response(result: HybridRetrieval) -> HybridRetrievalResp
             result_count=result.stats.result_count,
             searched_embedding_count=result.stats.searched_embedding_count,
             dimensions=result.stats.dimensions,
+        ),
+    )
+
+
+def to_repository_summary_response(result: RepositorySummary) -> RepositorySummaryResponse:
+    """Convert repository summary output into an API response."""
+    return RepositorySummaryResponse(
+        repository_path=result.repository_path,
+        overview=result.overview,
+        languages=[
+            RepositorySummaryLanguageResponse(
+                language=item.language,
+                file_count=item.file_count,
+                size_bytes=item.size_bytes,
+            )
+            for item in result.languages
+        ],
+        key_files=[
+            RepositorySummaryFileResponse(
+                path=item.path,
+                language=item.language,
+                size_bytes=item.size_bytes,
+                symbol_count=item.symbol_count,
+                dependency_count=item.dependency_count,
+                dependent_count=item.dependent_count,
+            )
+            for item in result.key_files
+        ],
+        key_symbols=[
+            RepositorySummarySymbolResponse(
+                name=item.name,
+                kind=item.kind,
+                path=item.path,
+                line=item.line,
+                parent=item.parent,
+            )
+            for item in result.key_symbols
+        ],
+        dependency_highlights=list(result.dependency_highlights),
+        call_highlights=list(result.call_highlights),
+        evidence_paths=list(result.evidence_paths),
+        embedding_indexed=result.embedding_indexed,
+        stats=RepositorySummaryStatsResponse(
+            file_count=result.stats.file_count,
+            directory_count=result.stats.directory_count,
+            language_count=result.stats.language_count,
+            parsed_file_count=result.stats.parsed_file_count,
+            skipped_parse_file_count=result.stats.skipped_parse_file_count,
+            symbol_count=result.stats.symbol_count,
+            dependency_count=result.stats.dependency_count,
+            callable_count=result.stats.callable_count,
+            call_count=result.stats.call_count,
+            indexed_embedding_count=result.stats.indexed_embedding_count,
         ),
     )
 
@@ -657,6 +724,38 @@ def retrieve_imported_repository_context(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except (EmbeddingError, RetrievalError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/summary", response_model=RepositorySummaryResponse)
+def summarize_repository(
+    request: RepositorySummaryRequest,
+    service: Annotated[RepositorySummaryService, Depends(get_repository_summary_service)],
+) -> RepositorySummaryResponse:
+    """Summarize a repository from parsed code intelligence and graph context."""
+    try:
+        return to_repository_summary_response(service.summarize(request.repository_path))
+    except (RepositoryScanError, RepositorySummaryError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get("/imports/{import_id}/summary", response_model=RepositorySummaryResponse)
+def summarize_imported_repository(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[RepositorySummaryService, Depends(get_repository_summary_service)],
+) -> RepositorySummaryResponse:
+    """Summarize a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise RepositorySummaryError("Repository import has no local path to summarize.")
+        return to_repository_summary_response(
+            service.summarize(Path(imported_repository.repository_path))
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (RepositoryScanError, RepositorySummaryError) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

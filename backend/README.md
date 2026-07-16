@@ -62,6 +62,8 @@ Repository import endpoints:
 - `GET /api/repositories/imports/{import_id}/vector-store`
 - `POST /api/repositories/retrieve`
 - `POST /api/repositories/imports/{import_id}/retrieve`
+- `POST /api/repositories/summary`
+- `GET /api/repositories/imports/{import_id}/summary`
 
 Parse responses include compact AST metadata and extracted source symbols.
 Supported parser languages are C, C++, Go, Java, JavaScript, Python, Rust, and TypeScript.
@@ -85,3 +87,5 @@ storage statistics instead of full vector payloads.
 Hybrid retrieval endpoints search stored vectors with semantic similarity, keyword
 overlap, and dependency-graph context. Run vector storage for the repository before
 calling retrieval.
+Repository summary endpoints generate grounded repository overviews from scanner,
+parser, dependency graph, call graph, and vector index metadata.

@@ -26,6 +26,7 @@ from backend.app.services.metadata import MetadataService
 from backend.app.services.repository_chunker import RepositoryChunkerService
 from backend.app.services.repository_import import RepositoryImportService
 from backend.app.services.repository_scanner import RepositoryScannerService
+from backend.app.services.repository_summary import RepositorySummaryService
 from backend.app.services.retrieval import HybridRetrievalService
 from backend.app.services.vector_store import VectorStoreService
 
@@ -181,6 +182,23 @@ def get_hybrid_retrieval_service(
         embedding_client=embedding_service.client,
         dependency_graph=dependency_graph,
         model=embedding_service.model,
+    )
+
+
+def get_repository_summary_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
+    parser: Annotated[TreeSitterParserService, Depends(get_tree_sitter_parser_service)],
+    dependency_graph: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
+    call_graph: Annotated[CallGraphService, Depends(get_call_graph_service)],
+) -> RepositorySummaryService:
+    """Provide repository summarization operations."""
+    return RepositorySummaryService(
+        scanner=scanner,
+        parser=parser,
+        dependency_graph=dependency_graph,
+        call_graph=call_graph,
+        vector_repository=get_cached_vector_store_repository(str(settings.vector_database_path)),
     )
 
 
