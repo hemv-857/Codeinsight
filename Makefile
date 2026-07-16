@@ -3,7 +3,7 @@ BLACK := .venv/bin/black
 RUFF := .venv/bin/ruff
 MYPY := .venv/bin/mypy
 
-.PHONY: build docker-validate format format-check install-python-tools lint typecheck verify
+.PHONY: build docker-validate format format-check install-python-tools lint test typecheck verify
 
 build: typecheck docker-validate
 
@@ -29,8 +29,11 @@ lint:
 	npm run lint
 	$(RUFF) check .
 
+test:
+	$(PYTHON) -m pytest
+
 typecheck:
 	npm run typecheck
 	$(MYPY) backend workers graph parser tests
 
-verify: format-check lint typecheck build
+verify: format-check lint typecheck test build
