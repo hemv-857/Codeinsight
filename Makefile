@@ -36,7 +36,7 @@ lint:
 	$(RUFF) check .
 
 test:
-	$(PYTHON) -m pytest
+	$(PYTHON) scripts/check_python_coverage.py --min 90
 
 typecheck:
 	npm run typecheck
