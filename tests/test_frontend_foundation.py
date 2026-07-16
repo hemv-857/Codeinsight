@@ -31,6 +31,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/components/knowledge-graph-panel.tsx",
         "frontend/components/providers.tsx",
         "frontend/components/repository-explorer.tsx",
+        "frontend/components/repository-search-panel.tsx",
         "frontend/tailwind.config.ts",
     ]
 
@@ -60,6 +61,19 @@ def test_frontend_dependency_graph_uses_dependency_graph_apis() -> None:
     assert "ReactFlow" in graph_source
     assert "MiniMap" in graph_source
     assert "GraphControlToggle" in graph_source
+
+
+def test_frontend_repository_search_uses_retrieval_apis() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+    search_source = (ROOT / "frontend" / "components" / "repository-search-panel.tsx").read_text()
+
+    assert "/api/repositories/vector-store" in api_source
+    assert "/api/repositories/retrieve" in api_source
+    assert "/retrieve" in api_source
+    assert "indexRepositoryVectors" in search_source
+    assert "indexImportedRepositoryVectors" in search_source
+    assert "searchRepository" in search_source
+    assert "searchImportedRepository" in search_source
 
 
 def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:

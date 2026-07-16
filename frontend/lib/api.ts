@@ -74,6 +74,47 @@ export interface KnowledgeGraphResult {
   persistence: KnowledgeGraphPersistence;
 }
 
+export interface VectorStoreResult {
+  repository_path: string;
+  model: string;
+  stored_embedding_count: number;
+  dimensions: number;
+  backend: string;
+  skipped_file_count: number;
+}
+
+export interface SearchResultItem {
+  chunk_id: string;
+  path: string;
+  kind: string;
+  language: string;
+  start_line: number;
+  end_line: number;
+  content: string;
+  score: number;
+  vector_score: number;
+  keyword_score: number;
+  graph_score: number;
+  related_paths: string[];
+  symbol_kind: string | null;
+  symbol_name: string | null;
+  symbol_parent: string | null;
+}
+
+export interface SearchStats {
+  result_count: number;
+  searched_embedding_count: number;
+  dimensions: number;
+}
+
+export interface SearchResult {
+  repository_path: string;
+  query: string;
+  model: string;
+  results: SearchResultItem[];
+  stats: SearchStats;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -162,4 +203,75 @@ export async function buildImportedKnowledgeGraph(importId: string): Promise<Kno
   }
 
   return response.json() as Promise<KnowledgeGraphResult>;
+}
+
+export async function indexRepositoryVectors(repositoryPath: string): Promise<VectorStoreResult> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/vector-store`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repository_path: repositoryPath }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Vector indexing failed'));
+  }
+
+  return response.json() as Promise<VectorStoreResult>;
+}
+
+export async function indexImportedRepositoryVectors(importId: string): Promise<VectorStoreResult> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/imports/${importId}/vector-store`);
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Imported vector indexing failed'));
+  }
+
+  return response.json() as Promise<VectorStoreResult>;
+}
+
+export async function searchRepository(
+  repositoryPath: string,
+  query: string,
+  limit: number,
+): Promise<SearchResult> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/retrieve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repository_path: repositoryPath, query, limit }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Repository search failed'));
+  }
+
+  return response.json() as Promise<SearchResult>;
+}
+
+export async function searchImportedRepository(
+  importId: string,
+  query: string,
+  limit: number,
+): Promise<SearchResult> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/imports/${importId}/retrieve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, limit }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Imported repository search failed'));
+  }
+
+  return response.json() as Promise<SearchResult>;
+}
+
+async function responseError(response: Response, fallback: string) {
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    return typeof body.detail === 'string'
+      ? body.detail
+      : `${fallback} with status ${response.status}`;
+  } catch {
+    return `${fallback} with status ${response.status}`;
+  }
 }
