@@ -15,6 +15,7 @@ from parser.tree_sitter_parser import TreeSitterParserService
 
 from backend.app.core.config import Settings, get_cached_settings
 from backend.app.repositories.metadata import MetadataRepository
+from backend.app.services.embedding import EmbeddingService, OpenAIEmbeddingClient
 from backend.app.services.metadata import MetadataService
 from backend.app.services.repository_chunker import RepositoryChunkerService
 from backend.app.services.repository_import import RepositoryImportService
@@ -106,6 +107,28 @@ def get_repository_chunker_service(
         scanner=scanner,
         parser=parser,
         max_chunk_chars=settings.repository_chunk_max_chars,
+    )
+
+
+@lru_cache(maxsize=16)
+def get_cached_openai_embedding_client(api_key: str) -> OpenAIEmbeddingClient:
+    """Return an OpenAI-backed embedding client."""
+    return OpenAIEmbeddingClient(api_key=api_key)
+
+
+def get_embedding_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    chunker: Annotated[RepositoryChunkerService, Depends(get_repository_chunker_service)],
+) -> EmbeddingService:
+    """Provide embedding generation operations."""
+    api_key = (
+        settings.openai_api_key.get_secret_value().strip() if settings.openai_api_key else None
+    )
+    return EmbeddingService(
+        chunker=chunker,
+        client=get_cached_openai_embedding_client(api_key) if api_key else None,
+        model=settings.embedding_model,
+        batch_size=settings.embedding_batch_size,
     )
 
 

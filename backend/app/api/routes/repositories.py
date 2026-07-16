@@ -19,6 +19,7 @@ from parser.tree_sitter_parser import (
 from backend.app.core.dependencies import (
     get_call_graph_service,
     get_dependency_graph_service,
+    get_embedding_service,
     get_knowledge_graph_service,
     get_metadata_service,
     get_repository_chunker_service,
@@ -39,6 +40,12 @@ from backend.app.schemas.dependency_graph import (
     DependencyGraphResponse,
     DependencyGraphStatsResponse,
     DependencyNodeResponse,
+)
+from backend.app.schemas.embedding import (
+    ChunkEmbeddingResponse,
+    RepositoryEmbeddingRequest,
+    RepositoryEmbeddingsResponse,
+    RepositoryEmbeddingStatsResponse,
 )
 from backend.app.schemas.knowledge_graph import (
     KnowledgeGraphPersistenceResponse,
@@ -64,6 +71,7 @@ from backend.app.schemas.repository_chunk import (
 )
 from backend.app.schemas.repository_import import RepositoryImportRequest, RepositoryImportResponse
 from backend.app.schemas.repository_scan import RepositoryScanRequest, RepositoryScanResult
+from backend.app.services.embedding import EmbeddingError, EmbeddingService, RepositoryEmbeddings
 from backend.app.services.metadata import MetadataService
 from backend.app.services.repository_chunker import (
     RepositoryChunkError,
@@ -74,6 +82,41 @@ from backend.app.services.repository_import import RepositoryImportError, Reposi
 from backend.app.services.repository_scanner import RepositoryScanError, RepositoryScannerService
 
 router = APIRouter(prefix="/api/repositories", tags=["repositories"])
+
+
+def to_repository_embeddings_response(
+    embeddings: RepositoryEmbeddings,
+) -> RepositoryEmbeddingsResponse:
+    """Convert repository embeddings into an API response."""
+    return RepositoryEmbeddingsResponse(
+        repository_path=embeddings.repository_path,
+        model=embeddings.model,
+        embeddings=[
+            ChunkEmbeddingResponse(
+                chunk_id=embedding.chunk_id,
+                path=embedding.path,
+                kind=embedding.kind,
+                language=embedding.language,
+                start_line=embedding.start_line,
+                end_line=embedding.end_line,
+                embedding=list(embedding.embedding),
+                symbol_kind=embedding.symbol_kind,
+                symbol_name=embedding.symbol_name,
+                symbol_parent=embedding.symbol_parent,
+            )
+            for embedding in embeddings.embeddings
+        ],
+        skipped_files=[
+            SkippedChunkFileResponse(path=file.path, reason=file.reason)
+            for file in embeddings.skipped_files
+        ],
+        stats=RepositoryEmbeddingStatsResponse(
+            chunk_count=embeddings.stats.chunk_count,
+            embedding_count=embeddings.stats.embedding_count,
+            dimensions=embeddings.stats.dimensions,
+            skipped_file_count=embeddings.stats.skipped_file_count,
+        ),
+    )
 
 
 def to_repository_chunks_response(chunks: RepositoryChunks) -> RepositoryChunksResponse:
@@ -449,6 +492,38 @@ def chunk_imported_repository(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except (RepositoryScanError, RepositoryChunkError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/embeddings", response_model=RepositoryEmbeddingsResponse)
+def generate_repository_embeddings(
+    request: RepositoryEmbeddingRequest,
+    service: Annotated[EmbeddingService, Depends(get_embedding_service)],
+) -> RepositoryEmbeddingsResponse:
+    """Generate embeddings for repository chunks."""
+    try:
+        return to_repository_embeddings_response(service.embed_repository(request.repository_path))
+    except (RepositoryScanError, RepositoryChunkError, EmbeddingError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get("/imports/{import_id}/embeddings", response_model=RepositoryEmbeddingsResponse)
+def generate_imported_repository_embeddings(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[EmbeddingService, Depends(get_embedding_service)],
+) -> RepositoryEmbeddingsResponse:
+    """Generate embeddings for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise EmbeddingError("Repository import has no local path to embed.")
+        return to_repository_embeddings_response(
+            service.embed_repository(Path(imported_repository.repository_path))
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (RepositoryScanError, RepositoryChunkError, EmbeddingError) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

@@ -21,6 +21,9 @@ Configuration is loaded from environment variables prefixed with `FORGE_AI_`.
 - `FORGE_AI_NEO4J_PASSWORD`
 - `FORGE_AI_NEO4J_URI`
 - `FORGE_AI_NEO4J_USERNAME`
+- `FORGE_AI_OPENAI_API_KEY`
+- `FORGE_AI_EMBEDDING_BATCH_SIZE`
+- `FORGE_AI_EMBEDDING_MODEL`
 - `FORGE_AI_REPOSITORY_CHUNK_MAX_CHARS`
 - `FORGE_AI_REPOSITORY_CLONE_TIMEOUT_SECONDS`
 - `FORGE_AI_REPOSITORY_STORAGE_PATH`
@@ -49,6 +52,8 @@ Repository import endpoints:
 - `GET /api/repositories/imports/{import_id}/knowledge-graph`
 - `POST /api/repositories/chunks`
 - `GET /api/repositories/imports/{import_id}/chunks`
+- `POST /api/repositories/embeddings`
+- `GET /api/repositories/imports/{import_id}/embeddings`
 
 Parse responses include compact AST metadata and extracted source symbols.
 Supported parser languages are C, C++, Go, Java, JavaScript, Python, Rust, and TypeScript.
@@ -63,3 +68,5 @@ backend in the response. Each knowledge graph build also writes a durable SQLite
 snapshot for read-back and recovery.
 Repository chunk endpoints generate deterministic file and symbol chunks for the
 embedding pipeline without generating embeddings.
+Embedding endpoints generate OpenAI embeddings for repository chunks. They require
+`FORGE_AI_OPENAI_API_KEY` and default to `text-embedding-3-small`.
