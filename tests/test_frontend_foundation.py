@@ -25,6 +25,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/app/layout.tsx",
         "frontend/app/page.tsx",
         "frontend/app/globals.css",
+        "frontend/components/architecture-violations-panel.tsx",
         "frontend/components/dashboard.tsx",
         "frontend/components/circular-dependencies-panel.tsx",
         "frontend/components/dead-code-panel.tsx",
@@ -109,6 +110,18 @@ def test_frontend_dead_code_uses_dead_code_apis() -> None:
     assert "/dead-code" in api_source
     assert "detectDeadCode" in dead_code_source
     assert "detectImportedDeadCode" in dead_code_source
+
+
+def test_frontend_architecture_violations_uses_violation_apis() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+    violation_source = (
+        ROOT / "frontend" / "components" / "architecture-violations-panel.tsx"
+    ).read_text()
+
+    assert "/api/repositories/architecture-violations" in api_source
+    assert "/architecture-violations" in api_source
+    assert "detectArchitectureViolations" in violation_source
+    assert "detectImportedArchitectureViolations" in violation_source
 
 
 def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:

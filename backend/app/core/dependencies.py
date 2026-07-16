@@ -18,6 +18,7 @@ from backend.app.repositories.conversation_memory import ConversationMemoryRepos
 from backend.app.repositories.metadata import MetadataRepository
 from backend.app.repositories.vector_store import VectorStoreRepository
 from backend.app.services.architecture_explanation import ArchitectureExplanationService
+from backend.app.services.architecture_violations import ArchitectureViolationService
 from backend.app.services.circular_dependencies import CircularDependencyService
 from backend.app.services.conversation_memory import ConversationMemoryService
 from backend.app.services.dead_code import DeadCodeService
@@ -235,6 +236,13 @@ def get_dead_code_service(
 ) -> DeadCodeService:
     """Provide dead code detection operations."""
     return DeadCodeService(dependency_graph=dependency_graph, call_graph=call_graph)
+
+
+def get_architecture_violation_service(
+    dependency_graph: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
+) -> ArchitectureViolationService:
+    """Provide architecture violation detection operations."""
+    return ArchitectureViolationService(dependency_graph=dependency_graph)
 
 
 def get_architecture_explanation_service(

@@ -201,6 +201,35 @@ export interface DeadCodeReport {
   stats: DeadCodeStats;
 }
 
+export type ArchitectureViolationSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface ArchitectureViolation {
+  rule_id: string;
+  severity: ArchitectureViolationSeverity;
+  source: string;
+  target: string;
+  import_name: string;
+  title: string;
+  description: string;
+  confidence: number;
+  evidence: string[];
+}
+
+export interface ArchitectureViolationStats {
+  dependency_count: number;
+  violation_count: number;
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+}
+
+export interface ArchitectureViolationReport {
+  repository_path: string;
+  violations: ArchitectureViolation[];
+  stats: ArchitectureViolationStats;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -317,6 +346,38 @@ export async function detectImportedDeadCode(importId: string): Promise<DeadCode
   }
 
   return response.json() as Promise<DeadCodeReport>;
+}
+
+export async function detectArchitectureViolations(
+  repositoryPath: string,
+): Promise<ArchitectureViolationReport> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/architecture-violations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repository_path: repositoryPath }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Architecture violation detection failed'));
+  }
+
+  return response.json() as Promise<ArchitectureViolationReport>;
+}
+
+export async function detectImportedArchitectureViolations(
+  importId: string,
+): Promise<ArchitectureViolationReport> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/repositories/imports/${importId}/architecture-violations`,
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await responseError(response, 'Imported architecture violation detection failed'),
+    );
+  }
+
+  return response.json() as Promise<ArchitectureViolationReport>;
 }
 
 export async function buildKnowledgeGraph(repositoryPath: string): Promise<KnowledgeGraphResult> {

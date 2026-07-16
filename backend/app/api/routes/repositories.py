@@ -21,6 +21,7 @@ from parser.tree_sitter_parser import (
 
 from backend.app.core.dependencies import (
     get_architecture_explanation_service,
+    get_architecture_violation_service,
     get_call_graph_service,
     get_circular_dependency_service,
     get_conversation_memory_service,
@@ -45,6 +46,12 @@ from backend.app.schemas.architecture_explanation import (
     ArchitectureExplanationRequest,
     ArchitectureExplanationResponse,
     ImportedArchitectureExplanationRequest,
+)
+from backend.app.schemas.architecture_violations import (
+    ArchitectureViolationRequest,
+    ArchitectureViolationResponse,
+    ArchitectureViolationResponseItem,
+    ArchitectureViolationStatsResponse,
 )
 from backend.app.schemas.call_graph import (
     CallGraphEdgeResponse,
@@ -139,6 +146,11 @@ from backend.app.services.architecture_explanation import (
     ArchitectureExplanation,
     ArchitectureExplanationError,
     ArchitectureExplanationService,
+)
+from backend.app.services.architecture_violations import (
+    ArchitectureViolationError,
+    ArchitectureViolationReport,
+    ArchitectureViolationService,
 )
 from backend.app.services.circular_dependencies import (
     CircularDependencyError,
@@ -443,6 +455,37 @@ def to_dead_code_response(result: DeadCodeReport) -> DeadCodeResponse:
             finding_count=result.stats.finding_count,
             unused_file_count=result.stats.unused_file_count,
             unused_callable_count=result.stats.unused_callable_count,
+        ),
+    )
+
+
+def to_architecture_violation_response(
+    result: ArchitectureViolationReport,
+) -> ArchitectureViolationResponse:
+    """Convert architecture violation output into an API response."""
+    return ArchitectureViolationResponse(
+        repository_path=result.repository_path,
+        violations=[
+            ArchitectureViolationResponseItem(
+                rule_id=violation.rule_id,
+                severity=violation.severity,
+                source=violation.source,
+                target=violation.target,
+                import_name=violation.import_name,
+                title=violation.title,
+                description=violation.description,
+                confidence=violation.confidence,
+                evidence=list(violation.evidence),
+            )
+            for violation in result.violations
+        ],
+        stats=ArchitectureViolationStatsResponse(
+            dependency_count=result.stats.dependency_count,
+            violation_count=result.stats.violation_count,
+            critical_count=result.stats.critical_count,
+            high_count=result.stats.high_count,
+            medium_count=result.stats.medium_count,
+            low_count=result.stats.low_count,
         ),
     )
 
@@ -1019,6 +1062,18 @@ def detect_repository_dead_code(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 
+@router.post("/architecture-violations", response_model=ArchitectureViolationResponse)
+def detect_repository_architecture_violations(
+    request: ArchitectureViolationRequest,
+    service: Annotated[ArchitectureViolationService, Depends(get_architecture_violation_service)],
+) -> ArchitectureViolationResponse:
+    """Detect architecture boundary violations for a repository path."""
+    try:
+        return to_architecture_violation_response(service.detect(request.repository_path))
+    except ArchitectureViolationError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
 @router.get("/imports/{import_id}/technical-debt", response_model=TechnicalDebtResponse)
 def analyze_imported_repository_technical_debt(
     import_id: str,
@@ -1077,6 +1132,29 @@ def detect_imported_repository_dead_code(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except DeadCodeError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get(
+    "/imports/{import_id}/architecture-violations",
+    response_model=ArchitectureViolationResponse,
+)
+def detect_imported_repository_architecture_violations(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[ArchitectureViolationService, Depends(get_architecture_violation_service)],
+) -> ArchitectureViolationResponse:
+    """Detect architecture boundary violations for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise ArchitectureViolationError("Repository import has no local path to analyze.")
+        return to_architecture_violation_response(
+            service.detect(Path(imported_repository.repository_path))
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except ArchitectureViolationError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

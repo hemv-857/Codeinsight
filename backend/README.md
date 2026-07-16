@@ -69,6 +69,8 @@ Repository import endpoints:
 - `GET /api/repositories/imports/{import_id}/circular-dependencies`
 - `POST /api/repositories/dead-code`
 - `GET /api/repositories/imports/{import_id}/dead-code`
+- `POST /api/repositories/architecture-violations`
+- `GET /api/repositories/imports/{import_id}/architecture-violations`
 - `POST /api/repositories/summary`
 - `GET /api/repositories/imports/{import_id}/summary`
 - `POST /api/repositories/architecture-explanation`
@@ -108,6 +110,9 @@ Circular dependency endpoints return dedicated file-level import cycles with
 affected file counts, maximum cycle length, and the import edges in each cycle.
 Dead code endpoints report conservative candidates for unreferenced source files
 and uncalled functions or methods from dependency and call graph evidence.
+Architecture violation endpoints flag common layer-boundary problems from import
+edges, including production-to-test imports, UI-to-infrastructure imports, and
+route/controller imports that skip the service layer.
 Repository summary endpoints generate grounded repository overviews from scanner,
 parser, dependency graph, call graph, and vector index metadata.
 Architecture explanation endpoints turn those grounded facts into component,

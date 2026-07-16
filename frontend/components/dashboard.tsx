@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Activity, Braces, GitBranch, Network, Search } from 'lucide-react';
 import { useState } from 'react';
 
+import { ArchitectureViolationsPanel } from '@/components/architecture-violations-panel';
 import { CircularDependenciesPanel } from '@/components/circular-dependencies-panel';
 import { DeadCodePanel } from '@/components/dead-code-panel';
 import { DependencyGraphPanel } from '@/components/dependency-graph-panel';
@@ -148,6 +149,19 @@ export function Dashboard() {
                 <Search className="h-5 w-5 text-accent" />
               </div>
               <DeadCodePanel scan={scan} />
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Architecture Violations</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Flag layer-boundary imports that cut across the system architecture.
+                  </p>
+                </div>
+                <Activity className="h-5 w-5 text-accent" />
+              </div>
+              <ArchitectureViolationsPanel scan={scan} />
             </section>
 
             <section className="space-y-4">
