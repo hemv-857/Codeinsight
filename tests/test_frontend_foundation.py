@@ -27,6 +27,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/app/globals.css",
         "frontend/components/dashboard.tsx",
         "frontend/components/dependency-graph-panel.tsx",
+        "frontend/components/graph-control-toggle.tsx",
         "frontend/components/knowledge-graph-panel.tsx",
         "frontend/components/providers.tsx",
         "frontend/components/repository-explorer.tsx",
@@ -57,6 +58,8 @@ def test_frontend_dependency_graph_uses_dependency_graph_apis() -> None:
     assert "buildDependencyGraph" in graph_source
     assert "buildImportedDependencyGraph" in graph_source
     assert "ReactFlow" in graph_source
+    assert "MiniMap" in graph_source
+    assert "GraphControlToggle" in graph_source
 
 
 def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:
@@ -68,3 +71,5 @@ def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:
     assert "buildKnowledgeGraph" in graph_source
     assert "buildImportedKnowledgeGraph" in graph_source
     assert "ReactFlow" in graph_source
+    assert "MiniMap" in graph_source
+    assert "GraphControlToggle" in graph_source

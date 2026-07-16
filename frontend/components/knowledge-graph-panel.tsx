@@ -2,10 +2,11 @@
 
 import '@xyflow/react/dist/style.css';
 
-import { Background, Controls, ReactFlow, type Edge, type Node } from '@xyflow/react';
+import { Background, Controls, MiniMap, ReactFlow, type Edge, type Node } from '@xyflow/react';
 import { Database, GitBranch, Loader2, Network, RefreshCw, Share2 } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
 
+import { GraphControlToggle } from '@/components/graph-control-toggle';
 import {
   type KnowledgeGraphResult,
   type RepositoryScanResult,
@@ -23,9 +24,15 @@ export function KnowledgeGraphPanel({ scan }: KnowledgeGraphPanelProps) {
   const [graph, setGraph] = useState<KnowledgeGraphResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nodesDraggable, setNodesDraggable] = useState(false);
+  const [showMiniMap, setShowMiniMap] = useState(true);
+  const [showEdgeLabels, setShowEdgeLabels] = useState(true);
 
   const activePath = repositoryPath.trim() || scan?.repository_path || '';
-  const { nodes, edges } = useMemo(() => toFlowElements(graph), [graph]);
+  const { nodes, edges } = useMemo(
+    () => toFlowElements(graph, showEdgeLabels),
+    [graph, showEdgeLabels],
+  );
 
   async function loadGraph(source: 'path' | 'import') {
     setIsLoading(true);
@@ -115,6 +122,20 @@ export function KnowledgeGraphPanel({ scan }: KnowledgeGraphPanelProps) {
         </div>
       ) : null}
 
+      <div className="flex flex-wrap gap-2 rounded-lg border border-border bg-card p-2">
+        <GraphControlToggle
+          label="Drag Nodes"
+          enabled={nodesDraggable}
+          onChange={setNodesDraggable}
+        />
+        <GraphControlToggle label="Minimap" enabled={showMiniMap} onChange={setShowMiniMap} />
+        <GraphControlToggle
+          label="Edge Labels"
+          enabled={showEdgeLabels}
+          onChange={setShowEdgeLabels}
+        />
+      </div>
+
       <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
         <div className="h-[420px] overflow-hidden rounded-lg border border-border bg-card">
           {graph ? (
@@ -122,12 +143,20 @@ export function KnowledgeGraphPanel({ scan }: KnowledgeGraphPanelProps) {
               nodes={nodes}
               edges={edges}
               fitView
-              nodesDraggable={false}
+              nodesDraggable={nodesDraggable}
               nodesConnectable={false}
               panOnScroll
             >
               <Background color="hsl(220 13% 26%)" gap={18} />
-              <Controls showInteractive={false} />
+              {showMiniMap ? (
+                <MiniMap
+                  nodeColor="hsl(174 64% 42%)"
+                  maskColor="hsl(222 18% 8% / 0.72)"
+                  pannable
+                  zoomable
+                />
+              ) : null}
+              <Controls />
             </ReactFlow>
           ) : (
             <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
@@ -205,7 +234,10 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
-function toFlowElements(graph: KnowledgeGraphResult | null): { nodes: Node[]; edges: Edge[] } {
+function toFlowElements(
+  graph: KnowledgeGraphResult | null,
+  showEdgeLabels: boolean,
+): { nodes: Node[]; edges: Edge[] } {
   if (!graph) {
     return { nodes: [], edges: [] };
   }
@@ -220,12 +252,12 @@ function toFlowElements(graph: KnowledgeGraphResult | null): { nodes: Node[]; ed
   ];
 
   const edges: Edge[] = [
-    createEdge('repository-files', 'repository', 'files', 'contains'),
-    createEdge('files-symbols', 'files', 'symbols', 'defines'),
-    createEdge('files-imports', 'files', 'imports', 'imports'),
-    createEdge('symbols-calls', 'symbols', 'calls', 'calls'),
-    createEdge('imports-storage', 'imports', 'storage', 'persists'),
-    createEdge('calls-storage', 'calls', 'storage', 'persists'),
+    createEdge('repository-files', 'repository', 'files', 'contains', showEdgeLabels),
+    createEdge('files-symbols', 'files', 'symbols', 'defines', showEdgeLabels),
+    createEdge('files-imports', 'files', 'imports', 'imports', showEdgeLabels),
+    createEdge('symbols-calls', 'symbols', 'calls', 'calls', showEdgeLabels),
+    createEdge('imports-storage', 'imports', 'storage', 'persists', showEdgeLabels),
+    createEdge('calls-storage', 'calls', 'storage', 'persists', showEdgeLabels),
   ];
 
   return { nodes, edges };
@@ -247,12 +279,18 @@ function createNode(id: string, title: string, detail: string, x: number, y: num
   };
 }
 
-function createEdge(id: string, source: string, target: string, label: string): Edge {
+function createEdge(
+  id: string,
+  source: string,
+  target: string,
+  label: string,
+  showLabel: boolean,
+): Edge {
   return {
     id,
     source,
     target,
-    label,
+    label: showLabel ? label : undefined,
     style: { stroke: 'hsl(174 64% 42%)' },
   };
 }

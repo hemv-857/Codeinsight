@@ -5,6 +5,7 @@ import '@xyflow/react/dist/style.css';
 import {
   Background,
   Controls,
+  MiniMap,
   ReactFlow,
   type Edge,
   type Node,
@@ -13,6 +14,7 @@ import {
 import { GitBranch, Loader2, Network, RefreshCw, TriangleAlert } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
 
+import { GraphControlToggle } from '@/components/graph-control-toggle';
 import {
   type DependencyGraphResult,
   type RepositoryScanResult,
@@ -31,11 +33,17 @@ export function DependencyGraphPanel({ scan }: DependencyGraphPanelProps) {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nodesDraggable, setNodesDraggable] = useState(false);
+  const [showMiniMap, setShowMiniMap] = useState(true);
+  const [showEdgeLabels, setShowEdgeLabels] = useState(true);
 
   const activePath = repositoryPath.trim() || scan?.repository_path || '';
   const selectedNode = graph?.nodes.find((node) => node.path === selectedPath) ?? null;
   const internalEdges = graph?.edges.filter((edge) => edge.target !== null) ?? [];
-  const { nodes, edges } = useMemo(() => toFlowElements(graph), [graph]);
+  const { nodes, edges } = useMemo(
+    () => toFlowElements(graph, selectedPath, showEdgeLabels),
+    [graph, selectedPath, showEdgeLabels],
+  );
 
   async function loadGraph(source: 'path' | 'import') {
     setIsLoading(true);
@@ -133,6 +141,20 @@ export function DependencyGraphPanel({ scan }: DependencyGraphPanelProps) {
         </div>
       ) : null}
 
+      <div className="flex flex-wrap gap-2 rounded-lg border border-border bg-card p-2">
+        <GraphControlToggle
+          label="Drag Nodes"
+          enabled={nodesDraggable}
+          onChange={setNodesDraggable}
+        />
+        <GraphControlToggle label="Minimap" enabled={showMiniMap} onChange={setShowMiniMap} />
+        <GraphControlToggle
+          label="Edge Labels"
+          enabled={showEdgeLabels}
+          onChange={setShowEdgeLabels}
+        />
+      </div>
+
       <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
         <div className="h-[520px] overflow-hidden rounded-lg border border-border bg-card">
           {graph ? (
@@ -141,12 +163,20 @@ export function DependencyGraphPanel({ scan }: DependencyGraphPanelProps) {
               edges={edges}
               fitView
               onNodeClick={onNodeClick}
-              nodesDraggable={false}
+              nodesDraggable={nodesDraggable}
               nodesConnectable={false}
               panOnScroll
             >
               <Background color="hsl(220 13% 26%)" gap={18} />
-              <Controls showInteractive={false} />
+              {showMiniMap ? (
+                <MiniMap
+                  nodeColor="hsl(174 64% 42%)"
+                  maskColor="hsl(222 18% 8% / 0.72)"
+                  pannable
+                  zoomable
+                />
+              ) : null}
+              <Controls />
             </ReactFlow>
           ) : (
             <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
@@ -261,9 +291,25 @@ function AlertList({
   );
 }
 
-function toFlowElements(graph: DependencyGraphResult | null): { nodes: Node[]; edges: Edge[] } {
+function toFlowElements(
+  graph: DependencyGraphResult | null,
+  selectedPath: string | null,
+  showEdgeLabels: boolean,
+): { nodes: Node[]; edges: Edge[] } {
   if (!graph) {
     return { nodes: [], edges: [] };
+  }
+
+  const selectedNeighbors = new Set<string>();
+  if (selectedPath) {
+    for (const edge of graph.edges) {
+      if (edge.source === selectedPath && edge.target) {
+        selectedNeighbors.add(edge.target);
+      }
+      if (edge.target === selectedPath) {
+        selectedNeighbors.add(edge.source);
+      }
+    }
   }
 
   const columns = Math.max(1, Math.ceil(Math.sqrt(graph.nodes.length)));
@@ -276,8 +322,9 @@ function toFlowElements(graph: DependencyGraphResult | null): { nodes: Node[]; e
     data: { label: compactPath(node.path) },
     style: {
       width: 210,
-      border: '1px solid hsl(220 13% 28%)',
-      background: 'hsl(222 18% 12%)',
+      border:
+        node.path === selectedPath ? '2px solid hsl(174 64% 42%)' : '1px solid hsl(220 13% 28%)',
+      background: selectedNeighbors.has(node.path) ? 'hsl(223 24% 18%)' : 'hsl(222 18% 12%)',
       color: 'hsl(210 30% 96%)',
       fontSize: 12,
     },
@@ -288,9 +335,14 @@ function toFlowElements(graph: DependencyGraphResult | null): { nodes: Node[]; e
       id: `${edge.source}-${edge.target}-${index}`,
       source: edge.source,
       target: edge.target ?? '',
-      label: edge.import_name,
+      label: showEdgeLabels ? edge.import_name : undefined,
       animated: false,
-      style: { stroke: 'hsl(174 64% 42%)' },
+      style: {
+        stroke:
+          edge.source === selectedPath || edge.target === selectedPath
+            ? 'hsl(38 92% 50%)'
+            : 'hsl(174 64% 42%)',
+      },
     }));
   return { nodes, edges };
 }
