@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = Field(default="http://localhost:11434")
     ollama_embedding_model: str = Field(default="nomic-embed-text")
     openai_api_key: SecretStr | None = Field(default=None)
+    parser_provider: Literal["safe", "tree_sitter"] = Field(default="tree_sitter")
     repository_chunk_max_chars: PositiveInt = Field(default=12_000)
     repository_storage_path: Path = Field(default=Path("data/repositories"))
     repository_zip_max_bytes: PositiveInt = Field(default=100 * 1024 * 1024)

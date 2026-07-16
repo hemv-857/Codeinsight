@@ -8,6 +8,7 @@ def test_settings_defaults() -> None:
     assert settings.app_name == "Forge AI"
     assert settings.environment == "development"
     assert settings.log_level == "INFO"
+    assert settings.parser_provider == "tree_sitter"
     assert settings.version == "0.1.0"
 
 
@@ -15,6 +16,7 @@ def test_settings_load_from_environment(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("FORGE_AI_APP_NAME", "Forge AI Test")
     monkeypatch.setenv("FORGE_AI_ENVIRONMENT", "test")
     monkeypatch.setenv("FORGE_AI_LOG_LEVEL", "DEBUG")
+    monkeypatch.setenv("FORGE_AI_PARSER_PROVIDER", "safe")
     monkeypatch.setenv("FORGE_AI_VERSION", "9.9.9")
 
     settings = Settings()
@@ -22,4 +24,5 @@ def test_settings_load_from_environment(monkeypatch: MonkeyPatch) -> None:
     assert settings.app_name == "Forge AI Test"
     assert settings.environment == "test"
     assert settings.log_level == "DEBUG"
+    assert settings.parser_provider == "safe"
     assert settings.version == "9.9.9"

@@ -6,10 +6,11 @@ FastAPI application code for Forge AI.
 
 - Run tests: `make test`
 - Run verification: `make verify`
-- Start the API locally: `.venv313/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8002`
+- Start the API locally: `FORGE_AI_PARSER_PROVIDER=safe .venv313/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8002`
 
 Use Python 3.13 for local backend demos on macOS. Python 3.14.6 can segfault in
-worker threads while scanning repositories.
+worker threads while scanning repositories. `FORGE_AI_PARSER_PROVIDER=safe`
+keeps the demo API stable if native Tree-sitter bindings crash during parsing.
 
 ## Environment
 
@@ -26,6 +27,7 @@ Configuration is loaded from environment variables prefixed with `FORGE_AI_`.
 - `FORGE_AI_NEO4J_URI`
 - `FORGE_AI_NEO4J_USERNAME`
 - `FORGE_AI_OPENAI_API_KEY`
+- `FORGE_AI_PARSER_PROVIDER`
 - `FORGE_AI_EMBEDDING_BATCH_SIZE`
 - `FORGE_AI_EMBEDDING_MODEL`
 - `FORGE_AI_EMBEDDING_PROVIDER`

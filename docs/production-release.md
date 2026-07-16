@@ -32,7 +32,7 @@ The gate includes:
 Start the backend:
 
 ```bash
-.venv313/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8002
+FORGE_AI_PARSER_PROVIDER=safe .venv313/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8002
 ```
 
 Start the frontend:
@@ -67,3 +67,5 @@ docker-compose up --build
 - API errors return structured JSON envelopes with `X-Request-ID` correlation.
 - Use Python 3.13 for local macOS demos; Python 3.14.6 can segfault while
   scanning repositories from AnyIO worker threads.
+- Use `FORGE_AI_PARSER_PROVIDER=safe` if native Tree-sitter bindings crash
+  during live demo parsing.

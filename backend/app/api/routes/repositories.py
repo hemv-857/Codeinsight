@@ -1120,7 +1120,7 @@ def to_parse_response(result: ParseTreeSummary) -> ParseTreeResponse:
 @router.post(
     "/import", response_model=RepositoryImportResponse, status_code=status.HTTP_201_CREATED
 )
-def import_repository(
+async def import_repository(
     request: RepositoryImportRequest,
     service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
 ) -> RepositoryImportResponse:
@@ -1151,7 +1151,7 @@ async def import_repository_zip(
 
 
 @router.get("/imports/{import_id}", response_model=RepositoryImportResponse)
-def get_repository_import(
+async def get_repository_import(
     import_id: str,
     service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
 ) -> RepositoryImportResponse:
@@ -1195,7 +1195,7 @@ async def scan_imported_repository(
 @router.post(
     "/metadata", response_model=StoredRepositoryMetadata, status_code=status.HTTP_201_CREATED
 )
-def persist_repository_metadata(
+async def persist_repository_metadata(
     request: MetadataPersistRequest,
     service: Annotated[MetadataService, Depends(get_metadata_service)],
 ) -> StoredRepositoryMetadata:
@@ -1207,7 +1207,7 @@ def persist_repository_metadata(
 
 
 @router.get("/metadata/{repository_id}", response_model=StoredRepositoryMetadata)
-def get_repository_metadata(
+async def get_repository_metadata(
     repository_id: int,
     service: Annotated[MetadataService, Depends(get_metadata_service)],
 ) -> StoredRepositoryMetadata:
@@ -1222,7 +1222,7 @@ def get_repository_metadata(
 
 
 @router.get("/imports/{import_id}/metadata", response_model=StoredRepositoryMetadata)
-def persist_imported_repository_metadata(
+async def persist_imported_repository_metadata(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     metadata_service: Annotated[MetadataService, Depends(get_metadata_service)],
@@ -1240,7 +1240,7 @@ def persist_imported_repository_metadata(
 
 
 @router.post("/parse-file", response_model=ParseTreeResponse)
-def parse_repository_file(
+async def parse_repository_file(
     request: ParseFileRequest,
     parser_service: Annotated[TreeSitterParserService, Depends(get_tree_sitter_parser_service)],
 ) -> ParseTreeResponse:
@@ -1252,7 +1252,7 @@ def parse_repository_file(
 
 
 @router.post("/parse-import/{import_id}", response_model=ParseRepositoryResponse)
-def parse_imported_repository(
+async def parse_imported_repository(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     scanner_service: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
@@ -1281,7 +1281,7 @@ def parse_imported_repository(
 
 
 @router.post("/dependency-graph", response_model=DependencyGraphResponse)
-def build_dependency_graph(
+async def build_dependency_graph(
     request: DependencyGraphRequest,
     service: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
 ) -> DependencyGraphResponse:
@@ -1293,7 +1293,7 @@ def build_dependency_graph(
 
 
 @router.post("/chunks", response_model=RepositoryChunksResponse)
-def chunk_repository(
+async def chunk_repository(
     request: RepositoryChunkRequest,
     service: Annotated[RepositoryChunkerService, Depends(get_repository_chunker_service)],
 ) -> RepositoryChunksResponse:
@@ -1305,7 +1305,7 @@ def chunk_repository(
 
 
 @router.get("/imports/{import_id}/chunks", response_model=RepositoryChunksResponse)
-def chunk_imported_repository(
+async def chunk_imported_repository(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[RepositoryChunkerService, Depends(get_repository_chunker_service)],
@@ -1325,7 +1325,7 @@ def chunk_imported_repository(
 
 
 @router.post("/embeddings", response_model=RepositoryEmbeddingsResponse)
-def generate_repository_embeddings(
+async def generate_repository_embeddings(
     request: RepositoryEmbeddingRequest,
     service: Annotated[EmbeddingService, Depends(get_embedding_service)],
 ) -> RepositoryEmbeddingsResponse:
@@ -1337,7 +1337,7 @@ def generate_repository_embeddings(
 
 
 @router.get("/imports/{import_id}/embeddings", response_model=RepositoryEmbeddingsResponse)
-def generate_imported_repository_embeddings(
+async def generate_imported_repository_embeddings(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[EmbeddingService, Depends(get_embedding_service)],
@@ -1357,7 +1357,7 @@ def generate_imported_repository_embeddings(
 
 
 @router.post("/vector-store", response_model=VectorStoreResponse)
-def store_repository_vectors(
+async def store_repository_vectors(
     request: VectorStoreRequest,
     service: Annotated[VectorStoreService, Depends(get_vector_store_service)],
 ) -> VectorStoreResponse:
@@ -1369,7 +1369,7 @@ def store_repository_vectors(
 
 
 @router.get("/imports/{import_id}/vector-store", response_model=VectorStoreResponse)
-def store_imported_repository_vectors(
+async def store_imported_repository_vectors(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[VectorStoreService, Depends(get_vector_store_service)],
@@ -1389,7 +1389,7 @@ def store_imported_repository_vectors(
 
 
 @router.post("/retrieve", response_model=HybridRetrievalResponse)
-def retrieve_repository_context(
+async def retrieve_repository_context(
     request: HybridRetrievalRequest,
     service: Annotated[HybridRetrievalService, Depends(get_hybrid_retrieval_service)],
 ) -> HybridRetrievalResponse:
@@ -1407,7 +1407,7 @@ def retrieve_repository_context(
 
 
 @router.post("/imports/{import_id}/retrieve", response_model=HybridRetrievalResponse)
-def retrieve_imported_repository_context(
+async def retrieve_imported_repository_context(
     import_id: str,
     request: ImportedHybridRetrievalRequest,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
@@ -1432,7 +1432,7 @@ def retrieve_imported_repository_context(
 
 
 @router.post("/technical-debt", response_model=TechnicalDebtResponse)
-def analyze_repository_technical_debt(
+async def analyze_repository_technical_debt(
     request: TechnicalDebtRequest,
     service: Annotated[TechnicalDebtService, Depends(get_technical_debt_service)],
 ) -> TechnicalDebtResponse:
@@ -1444,7 +1444,7 @@ def analyze_repository_technical_debt(
 
 
 @router.post("/circular-dependencies", response_model=CircularDependencyResponse)
-def detect_repository_circular_dependencies(
+async def detect_repository_circular_dependencies(
     request: CircularDependencyRequest,
     service: Annotated[CircularDependencyService, Depends(get_circular_dependency_service)],
 ) -> CircularDependencyResponse:
@@ -1456,7 +1456,7 @@ def detect_repository_circular_dependencies(
 
 
 @router.post("/dead-code", response_model=DeadCodeResponse)
-def detect_repository_dead_code(
+async def detect_repository_dead_code(
     request: DeadCodeRequest,
     service: Annotated[DeadCodeService, Depends(get_dead_code_service)],
 ) -> DeadCodeResponse:
@@ -1468,7 +1468,7 @@ def detect_repository_dead_code(
 
 
 @router.post("/architecture-violations", response_model=ArchitectureViolationResponse)
-def detect_repository_architecture_violations(
+async def detect_repository_architecture_violations(
     request: ArchitectureViolationRequest,
     service: Annotated[ArchitectureViolationService, Depends(get_architecture_violation_service)],
 ) -> ArchitectureViolationResponse:
@@ -1480,7 +1480,7 @@ def detect_repository_architecture_violations(
 
 
 @router.post("/stack-trace/parse", response_model=StackTraceParseResponse)
-def parse_stack_trace(
+async def parse_stack_trace(
     request: StackTraceParseRequest,
     service: Annotated[StackTraceParserService, Depends(get_stack_trace_parser_service)],
 ) -> StackTraceParseResponse:
@@ -1492,7 +1492,7 @@ def parse_stack_trace(
 
 
 @router.post("/bug-impact", response_model=BugImpactResponse)
-def predict_repository_bug_impact(
+async def predict_repository_bug_impact(
     request: BugImpactRequest,
     service: Annotated[BugImpactService, Depends(get_bug_impact_service)],
 ) -> BugImpactResponse:
@@ -1511,7 +1511,7 @@ def predict_repository_bug_impact(
 
 
 @router.get("/imports/{import_id}/technical-debt", response_model=TechnicalDebtResponse)
-def analyze_imported_repository_technical_debt(
+async def analyze_imported_repository_technical_debt(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[TechnicalDebtService, Depends(get_technical_debt_service)],
@@ -1534,7 +1534,7 @@ def analyze_imported_repository_technical_debt(
     "/imports/{import_id}/circular-dependencies",
     response_model=CircularDependencyResponse,
 )
-def detect_imported_repository_circular_dependencies(
+async def detect_imported_repository_circular_dependencies(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[CircularDependencyService, Depends(get_circular_dependency_service)],
@@ -1554,7 +1554,7 @@ def detect_imported_repository_circular_dependencies(
 
 
 @router.get("/imports/{import_id}/dead-code", response_model=DeadCodeResponse)
-def detect_imported_repository_dead_code(
+async def detect_imported_repository_dead_code(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[DeadCodeService, Depends(get_dead_code_service)],
@@ -1575,7 +1575,7 @@ def detect_imported_repository_dead_code(
     "/imports/{import_id}/architecture-violations",
     response_model=ArchitectureViolationResponse,
 )
-def detect_imported_repository_architecture_violations(
+async def detect_imported_repository_architecture_violations(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[ArchitectureViolationService, Depends(get_architecture_violation_service)],
@@ -1595,7 +1595,7 @@ def detect_imported_repository_architecture_violations(
 
 
 @router.post("/imports/{import_id}/bug-impact", response_model=BugImpactResponse)
-def predict_imported_repository_bug_impact(
+async def predict_imported_repository_bug_impact(
     import_id: str,
     request: ImportedBugImpactRequest,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
@@ -1621,7 +1621,7 @@ def predict_imported_repository_bug_impact(
 
 
 @router.post("/summary", response_model=RepositorySummaryResponse)
-def summarize_repository(
+async def summarize_repository(
     request: RepositorySummaryRequest,
     service: Annotated[RepositorySummaryService, Depends(get_repository_summary_service)],
 ) -> RepositorySummaryResponse:
@@ -1633,7 +1633,7 @@ def summarize_repository(
 
 
 @router.get("/imports/{import_id}/summary", response_model=RepositorySummaryResponse)
-def summarize_imported_repository(
+async def summarize_imported_repository(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[RepositorySummaryService, Depends(get_repository_summary_service)],
@@ -1653,7 +1653,7 @@ def summarize_imported_repository(
 
 
 @router.post("/readme", response_model=GeneratedReadmeResponse)
-def generate_repository_readme(
+async def generate_repository_readme(
     request: ReadmeGenerationRequest,
     service: Annotated[ReadmeGeneratorService, Depends(get_readme_generator_service)],
 ) -> GeneratedReadmeResponse:
@@ -1665,7 +1665,7 @@ def generate_repository_readme(
 
 
 @router.get("/imports/{import_id}/readme", response_model=GeneratedReadmeResponse)
-def generate_imported_repository_readme(
+async def generate_imported_repository_readme(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[ReadmeGeneratorService, Depends(get_readme_generator_service)],
@@ -1685,7 +1685,7 @@ def generate_imported_repository_readme(
 
 
 @router.post("/architecture-explanation", response_model=ArchitectureExplanationResponse)
-def explain_repository_architecture(
+async def explain_repository_architecture(
     request: ArchitectureExplanationRequest,
     service: Annotated[
         ArchitectureExplanationService, Depends(get_architecture_explanation_service)
@@ -1704,7 +1704,7 @@ def explain_repository_architecture(
     "/imports/{import_id}/architecture-explanation",
     response_model=ArchitectureExplanationResponse,
 )
-def explain_imported_repository_architecture(
+async def explain_imported_repository_architecture(
     import_id: str,
     request: ImportedArchitectureExplanationRequest,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
@@ -1730,7 +1730,7 @@ def explain_imported_repository_architecture(
 
 
 @router.post("/architecture-docs", response_model=GeneratedArchitectureDocResponse)
-def generate_repository_architecture_docs(
+async def generate_repository_architecture_docs(
     request: ArchitectureDocsRequest,
     service: Annotated[ArchitectureDocsService, Depends(get_architecture_docs_service)],
 ) -> GeneratedArchitectureDocResponse:
@@ -1752,7 +1752,7 @@ def generate_repository_architecture_docs(
     "/imports/{import_id}/architecture-docs",
     response_model=GeneratedArchitectureDocResponse,
 )
-def generate_imported_repository_architecture_docs(
+async def generate_imported_repository_architecture_docs(
     import_id: str,
     request: ImportedArchitectureDocsRequest,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
@@ -1781,7 +1781,7 @@ def generate_imported_repository_architecture_docs(
 
 
 @router.post("/mermaid-diagrams", response_model=MermaidDiagramSetResponse)
-def generate_repository_mermaid_diagrams(
+async def generate_repository_mermaid_diagrams(
     request: MermaidDiagramRequest,
     service: Annotated[MermaidDiagramService, Depends(get_mermaid_diagram_service)],
 ) -> MermaidDiagramSetResponse:
@@ -1798,7 +1798,7 @@ def generate_repository_mermaid_diagrams(
     "/imports/{import_id}/mermaid-diagrams",
     response_model=MermaidDiagramSetResponse,
 )
-def generate_imported_repository_mermaid_diagrams(
+async def generate_imported_repository_mermaid_diagrams(
     import_id: str,
     request: ImportedMermaidDiagramRequest,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
@@ -1822,7 +1822,7 @@ def generate_imported_repository_mermaid_diagrams(
 
 
 @router.post("/developer-onboarding", response_model=GeneratedDeveloperOnboardingResponse)
-def generate_repository_developer_onboarding(
+async def generate_repository_developer_onboarding(
     request: DeveloperOnboardingRequest,
     service: Annotated[DeveloperOnboardingService, Depends(get_developer_onboarding_service)],
 ) -> GeneratedDeveloperOnboardingResponse:
@@ -1839,7 +1839,7 @@ def generate_repository_developer_onboarding(
     "/imports/{import_id}/developer-onboarding",
     response_model=GeneratedDeveloperOnboardingResponse,
 )
-def generate_imported_repository_developer_onboarding(
+async def generate_imported_repository_developer_onboarding(
     import_id: str,
     request: ImportedDeveloperOnboardingRequest,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
@@ -1863,7 +1863,7 @@ def generate_imported_repository_developer_onboarding(
 
 
 @router.post("/pr-review", response_model=PullRequestReviewResponse)
-def review_repository_pull_request(
+async def review_repository_pull_request(
     request: PullRequestReviewRequest,
     service: Annotated[PullRequestReviewService, Depends(get_pull_request_review_service)],
 ) -> PullRequestReviewResponse:
@@ -1883,7 +1883,7 @@ def review_repository_pull_request(
 
 
 @router.post("/imports/{import_id}/pr-review", response_model=PullRequestReviewResponse)
-def review_imported_repository_pull_request(
+async def review_imported_repository_pull_request(
     import_id: str,
     request: ImportedPullRequestReviewRequest,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
@@ -1910,7 +1910,7 @@ def review_imported_repository_pull_request(
 
 
 @router.post("/architecture-review", response_model=ArchitectureReviewResponse)
-def review_repository_architecture(
+async def review_repository_architecture(
     request: ArchitectureReviewRequest,
     service: Annotated[ArchitectureReviewService, Depends(get_architecture_review_service)],
 ) -> ArchitectureReviewResponse:
@@ -1928,7 +1928,7 @@ def review_repository_architecture(
 
 
 @router.post("/imports/{import_id}/architecture-review", response_model=ArchitectureReviewResponse)
-def review_imported_repository_architecture(
+async def review_imported_repository_architecture(
     import_id: str,
     request: ImportedArchitectureReviewRequest,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
@@ -1953,7 +1953,7 @@ def review_imported_repository_architecture(
 
 
 @router.post("/security-review", response_model=SecurityReviewResponse)
-def review_repository_security(
+async def review_repository_security(
     request: SecurityReviewRequest,
     service: Annotated[SecurityReviewService, Depends(get_security_review_service)],
 ) -> SecurityReviewResponse:
@@ -1971,7 +1971,7 @@ def review_repository_security(
 
 
 @router.post("/imports/{import_id}/security-review", response_model=SecurityReviewResponse)
-def review_imported_repository_security(
+async def review_imported_repository_security(
     import_id: str,
     request: ImportedSecurityReviewRequest,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
@@ -1999,7 +1999,7 @@ def review_imported_repository_security(
     "/conversations/{session_id}",
     response_model=ConversationSessionResponse,
 )
-def get_repository_conversation(
+async def get_repository_conversation(
     session_id: str,
     memory: Annotated[ConversationMemoryService, Depends(get_conversation_memory_service)],
 ) -> ConversationSessionResponse:
@@ -2011,7 +2011,7 @@ def get_repository_conversation(
 
 
 @router.post("/question", response_model=RepositoryQAResponse)
-def answer_repository_question(
+async def answer_repository_question(
     request: RepositoryQARequest,
     service: Annotated[RepositoryQAService, Depends(get_repository_qa_service)],
     memory: Annotated[ConversationMemoryService, Depends(get_conversation_memory_service)],
@@ -2040,7 +2040,7 @@ def answer_repository_question(
 
 
 @router.post("/question/stream")
-def stream_repository_question(
+async def stream_repository_question(
     request: RepositoryQARequest,
     service: Annotated[RepositoryQAService, Depends(get_repository_qa_service)],
     memory: Annotated[ConversationMemoryService, Depends(get_conversation_memory_service)],
@@ -2072,7 +2072,7 @@ def stream_repository_question(
 
 
 @router.post("/imports/{import_id}/question", response_model=RepositoryQAResponse)
-def answer_imported_repository_question(
+async def answer_imported_repository_question(
     import_id: str,
     request: ImportedRepositoryQARequest,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
@@ -2108,7 +2108,7 @@ def answer_imported_repository_question(
 
 
 @router.post("/imports/{import_id}/question/stream")
-def stream_imported_repository_question(
+async def stream_imported_repository_question(
     import_id: str,
     request: ImportedRepositoryQARequest,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
@@ -2147,7 +2147,7 @@ def stream_imported_repository_question(
 
 
 @router.post("/call-graph", response_model=CallGraphResponse)
-def build_call_graph(
+async def build_call_graph(
     request: CallGraphRequest,
     service: Annotated[CallGraphService, Depends(get_call_graph_service)],
 ) -> CallGraphResponse:
@@ -2159,7 +2159,7 @@ def build_call_graph(
 
 
 @router.get("/imports/{import_id}/call-graph", response_model=CallGraphResponse)
-def build_imported_repository_call_graph(
+async def build_imported_repository_call_graph(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[CallGraphService, Depends(get_call_graph_service)],
@@ -2177,7 +2177,7 @@ def build_imported_repository_call_graph(
 
 
 @router.post("/knowledge-graph", response_model=KnowledgeGraphResponse)
-def build_knowledge_graph(
+async def build_knowledge_graph(
     request: KnowledgeGraphRequest,
     service: Annotated[KnowledgeGraphService, Depends(get_knowledge_graph_service)],
 ) -> KnowledgeGraphResponse:
@@ -2190,7 +2190,7 @@ def build_knowledge_graph(
 
 
 @router.get("/imports/{import_id}/knowledge-graph", response_model=KnowledgeGraphResponse)
-def build_imported_repository_knowledge_graph(
+async def build_imported_repository_knowledge_graph(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[KnowledgeGraphService, Depends(get_knowledge_graph_service)],
@@ -2209,7 +2209,7 @@ def build_imported_repository_knowledge_graph(
 
 
 @router.get("/imports/{import_id}/dependency-graph", response_model=DependencyGraphResponse)
-def build_imported_repository_dependency_graph(
+async def build_imported_repository_dependency_graph(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
     service: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],

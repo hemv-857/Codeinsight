@@ -1,9 +1,12 @@
 import logging
+from inspect import iscoroutinefunction
 from typing import Any
 
+from backend.app.api.routes.repositories import router as repositories_router
 from backend.app.core.config import Settings
 from backend.app.core.logging import configure_logging
 from backend.app.main import create_app
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 
@@ -36,6 +39,16 @@ def test_backend_allows_local_dashboard_cors_preflight() -> None:
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:3002"
+
+
+def test_repository_endpoints_run_on_event_loop() -> None:
+    sync_endpoints = [
+        route.name
+        for route in repositories_router.routes
+        if isinstance(route, APIRoute) and not iscoroutinefunction(route.endpoint)
+    ]
+
+    assert sync_endpoints == []
 
 
 def test_openapi_uses_configured_metadata() -> None:

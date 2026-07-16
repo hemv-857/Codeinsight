@@ -11,7 +11,7 @@ from graph.neo4j_repository import Neo4jKnowledgeGraphRepository
 from graph.networkx_repository import NetworkXKnowledgeGraphRepository
 from graph.persistent_repository import PersistentKnowledgeGraphRepository
 from graph.sqlite_repository import SQLiteKnowledgeGraphRepository
-from parser.tree_sitter_parser import TreeSitterParserService
+from parser.tree_sitter_parser import SafeSourceParserService, TreeSitterParserService
 
 from backend.app.core.config import Settings, get_cached_settings
 from backend.app.repositories.conversation_memory import ConversationMemoryRepository
@@ -102,10 +102,13 @@ def get_metadata_service(
     )
 
 
-@lru_cache(maxsize=1)
-def get_tree_sitter_parser_service() -> TreeSitterParserService:
+def get_tree_sitter_parser_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> TreeSitterParserService:
     """Provide Tree-sitter parsing operations to API routes."""
-    return TreeSitterParserService()
+    if settings.parser_provider == "tree_sitter":
+        return TreeSitterParserService()
+    return SafeSourceParserService()
 
 
 def get_dependency_graph_service(

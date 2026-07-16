@@ -39,7 +39,7 @@ python3.13 -m venv .venv313
 Run the backend:
 
 ```bash
-.venv313/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8002
+FORGE_AI_PARSER_PROVIDER=safe .venv313/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8002
 ```
 
 Run the dashboard:
@@ -118,5 +118,6 @@ Compose config validation.
 Current quality target: Python coverage above 90%.
 
 Note: avoid Python 3.14 for local backend demos on macOS. Python 3.14.6 can
-segfault in worker threads while scanning repositories. Python 3.13 is stable
-for the current Forge AI backend.
+segfault in worker threads while scanning repositories. Use
+`FORGE_AI_PARSER_PROVIDER=safe` for live demos if native Tree-sitter bindings
+crash while parsing a large repository.
