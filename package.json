@@ -1,0 +1,29 @@
+{
+  "name": "forge-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Google Maps for Software Systems.",
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "shared"
+  ],
+  "scripts": {
+    "build": "tsc --noEmit --project tsconfig.base.json",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit --project tsconfig.base.json"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "eslint": "^9.31.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.37.0"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  }
+}
