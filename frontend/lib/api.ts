@@ -51,6 +51,29 @@ export interface DependencyGraphResult {
   stats: DependencyGraphStats;
 }
 
+export interface KnowledgeGraphStats {
+  node_count: number;
+  edge_count: number;
+  file_count: number;
+  symbol_count: number;
+  dependency_edge_count: number;
+  call_edge_count: number;
+}
+
+export interface KnowledgeGraphPersistence {
+  persisted: boolean;
+  node_count: number;
+  edge_count: number;
+  backend: string;
+  durable_backend: string | null;
+}
+
+export interface KnowledgeGraphResult {
+  repository_path: string;
+  stats: KnowledgeGraphStats;
+  persistence: KnowledgeGraphPersistence;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -113,4 +136,30 @@ export async function buildImportedDependencyGraph(
   }
 
   return response.json() as Promise<DependencyGraphResult>;
+}
+
+export async function buildKnowledgeGraph(repositoryPath: string): Promise<KnowledgeGraphResult> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/knowledge-graph`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repository_path: repositoryPath }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Knowledge graph build failed with status ${response.status}`);
+  }
+
+  return response.json() as Promise<KnowledgeGraphResult>;
+}
+
+export async function buildImportedKnowledgeGraph(importId: string): Promise<KnowledgeGraphResult> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/repositories/imports/${importId}/knowledge-graph`,
+  );
+
+  if (!response.ok) {
+    throw new Error(`Imported knowledge graph build failed with status ${response.status}`);
+  }
+
+  return response.json() as Promise<KnowledgeGraphResult>;
 }

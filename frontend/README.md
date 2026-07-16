@@ -17,3 +17,5 @@ The first screen is the dark-mode Forge AI dashboard with backend health, a repo
 The repository explorer can scan a backend-accessible local repository path or load a previously imported repository by import ID.
 
 The dependency graph panel can build file-level import graphs from a repository path or import ID and render internal dependencies, unresolved imports, and detected cycles.
+
+The knowledge graph panel can build and persist the repository architecture graph, then display graph size, relationship counts, and the selected persistence backend.

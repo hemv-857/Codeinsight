@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 import { DependencyGraphPanel } from '@/components/dependency-graph-panel';
 import { HealthBadge } from '@/components/health-badge';
+import { KnowledgeGraphPanel } from '@/components/knowledge-graph-panel';
 import { RepositoryExplorer } from '@/components/repository-explorer';
 import { Button } from '@/components/ui/button';
 import type { RepositoryScanResult } from '@/lib/api';
@@ -92,17 +93,32 @@ export function Dashboard() {
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1fr_320px]">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold">Dependency Graph</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Build the file-level dependency graph from parsed repository imports.
-                </p>
+          <div className="space-y-6">
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Dependency Graph</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Build the file-level dependency graph from parsed repository imports.
+                  </p>
+                </div>
+                <Network className="h-5 w-5 text-accent" />
               </div>
-              <Network className="h-5 w-5 text-accent" />
-            </div>
-            <DependencyGraphPanel scan={scan} />
+              <DependencyGraphPanel scan={scan} />
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Knowledge Graph</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Persist the repository architecture graph for AI and graph traversal.
+                  </p>
+                </div>
+                <Network className="h-5 w-5 text-accent" />
+              </div>
+              <KnowledgeGraphPanel scan={scan} />
+            </section>
           </div>
 
           <aside className="rounded-lg border border-border bg-card p-5">
