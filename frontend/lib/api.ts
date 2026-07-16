@@ -51,6 +51,31 @@ export interface DependencyGraphResult {
   stats: DependencyGraphStats;
 }
 
+export interface CircularDependencyEdge {
+  source: string;
+  target: string;
+  import_name: string;
+}
+
+export interface CircularDependencyCycle {
+  files: string[];
+  length: number;
+  edges: CircularDependencyEdge[];
+}
+
+export interface CircularDependencyStats {
+  cycle_count: number;
+  affected_file_count: number;
+  max_cycle_length: number;
+  internal_dependency_count: number;
+}
+
+export interface CircularDependencyReport {
+  repository_path: string;
+  cycles: CircularDependencyCycle[];
+  stats: CircularDependencyStats;
+}
+
 export interface KnowledgeGraphStats {
   node_count: number;
   edge_count: number;
@@ -211,6 +236,36 @@ export async function buildImportedDependencyGraph(
   }
 
   return response.json() as Promise<DependencyGraphResult>;
+}
+
+export async function detectCircularDependencies(
+  repositoryPath: string,
+): Promise<CircularDependencyReport> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/circular-dependencies`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repository_path: repositoryPath }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Circular dependency detection failed'));
+  }
+
+  return response.json() as Promise<CircularDependencyReport>;
+}
+
+export async function detectImportedCircularDependencies(
+  importId: string,
+): Promise<CircularDependencyReport> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/repositories/imports/${importId}/circular-dependencies`,
+  );
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Imported circular dependency detection failed'));
+  }
+
+  return response.json() as Promise<CircularDependencyReport>;
 }
 
 export async function buildKnowledgeGraph(repositoryPath: string): Promise<KnowledgeGraphResult> {

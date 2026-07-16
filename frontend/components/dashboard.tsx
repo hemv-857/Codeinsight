@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Activity, Braces, GitBranch, Network, Search } from 'lucide-react';
 import { useState } from 'react';
 
+import { CircularDependenciesPanel } from '@/components/circular-dependencies-panel';
 import { DependencyGraphPanel } from '@/components/dependency-graph-panel';
 import { HealthBadge } from '@/components/health-badge';
 import { KnowledgeGraphPanel } from '@/components/knowledge-graph-panel';
@@ -120,6 +121,19 @@ export function Dashboard() {
                 <Activity className="h-5 w-5 text-accent" />
               </div>
               <TechnicalDebtPanel scan={scan} />
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Circular Dependencies</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Detect import cycles and inspect the files participating in each loop.
+                  </p>
+                </div>
+                <GitBranch className="h-5 w-5 text-accent" />
+              </div>
+              <CircularDependenciesPanel scan={scan} />
             </section>
 
             <section className="space-y-4">

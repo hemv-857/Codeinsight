@@ -20,6 +20,8 @@ The repository search panel can index vectors for a repository path or import ID
 
 The technical debt panel analyzes a repository path or import ID and displays maintainability findings, severity counts, complexity metrics, and an architecture health score.
 
+The circular dependencies panel detects file-level import cycles from a repository path or import ID and displays impact statistics plus participating edges.
+
 The dependency graph panel can build file-level import graphs from a repository path or import ID and render internal dependencies, unresolved imports, and detected cycles.
 
 The knowledge graph panel can build and persist the repository architecture graph, then display graph size, relationship counts, and the selected persistence backend.

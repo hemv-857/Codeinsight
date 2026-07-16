@@ -18,6 +18,7 @@ from backend.app.repositories.conversation_memory import ConversationMemoryRepos
 from backend.app.repositories.metadata import MetadataRepository
 from backend.app.repositories.vector_store import VectorStoreRepository
 from backend.app.services.architecture_explanation import ArchitectureExplanationService
+from backend.app.services.circular_dependencies import CircularDependencyService
 from backend.app.services.conversation_memory import ConversationMemoryService
 from backend.app.services.embedding import (
     EmbeddingClient,
@@ -218,6 +219,13 @@ def get_technical_debt_service(
         parser=parser,
         dependency_graph=dependency_graph,
     )
+
+
+def get_circular_dependency_service(
+    dependency_graph: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
+) -> CircularDependencyService:
+    """Provide circular dependency detection operations."""
+    return CircularDependencyService(dependency_graph=dependency_graph)
 
 
 def get_architecture_explanation_service(

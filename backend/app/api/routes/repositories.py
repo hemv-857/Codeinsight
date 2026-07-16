@@ -22,6 +22,7 @@ from parser.tree_sitter_parser import (
 from backend.app.core.dependencies import (
     get_architecture_explanation_service,
     get_call_graph_service,
+    get_circular_dependency_service,
     get_conversation_memory_service,
     get_dependency_graph_service,
     get_embedding_service,
@@ -50,6 +51,13 @@ from backend.app.schemas.call_graph import (
     CallGraphRequest,
     CallGraphResponse,
     CallGraphStatsResponse,
+)
+from backend.app.schemas.circular_dependencies import (
+    CircularDependencyCycleResponse,
+    CircularDependencyEdgeResponse,
+    CircularDependencyRequest,
+    CircularDependencyResponse,
+    CircularDependencyStatsResponse,
 )
 from backend.app.schemas.conversation_memory import (
     ConversationMessageResponse,
@@ -124,6 +132,11 @@ from backend.app.services.architecture_explanation import (
     ArchitectureExplanation,
     ArchitectureExplanationError,
     ArchitectureExplanationService,
+)
+from backend.app.services.circular_dependencies import (
+    CircularDependencyError,
+    CircularDependencyReport,
+    CircularDependencyService,
 )
 from backend.app.services.conversation_memory import (
     ConversationMemoryError,
@@ -365,6 +378,36 @@ def to_technical_debt_response(result: TechnicalDebtReport) -> TechnicalDebtResp
             average_complexity=result.stats.average_complexity,
             max_complexity=result.stats.max_complexity,
             complex_symbol_count=result.stats.complex_symbol_count,
+        ),
+    )
+
+
+def to_circular_dependency_response(
+    result: CircularDependencyReport,
+) -> CircularDependencyResponse:
+    """Convert circular dependency detection output into an API response."""
+    return CircularDependencyResponse(
+        repository_path=result.repository_path,
+        cycles=[
+            CircularDependencyCycleResponse(
+                files=list(cycle.files),
+                length=cycle.length,
+                edges=[
+                    CircularDependencyEdgeResponse(
+                        source=edge.source,
+                        target=edge.target,
+                        import_name=edge.import_name,
+                    )
+                    for edge in cycle.edges
+                ],
+            )
+            for cycle in result.cycles
+        ],
+        stats=CircularDependencyStatsResponse(
+            cycle_count=result.stats.cycle_count,
+            affected_file_count=result.stats.affected_file_count,
+            max_cycle_length=result.stats.max_cycle_length,
+            internal_dependency_count=result.stats.internal_dependency_count,
         ),
     )
 
@@ -917,6 +960,18 @@ def analyze_repository_technical_debt(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 
+@router.post("/circular-dependencies", response_model=CircularDependencyResponse)
+def detect_repository_circular_dependencies(
+    request: CircularDependencyRequest,
+    service: Annotated[CircularDependencyService, Depends(get_circular_dependency_service)],
+) -> CircularDependencyResponse:
+    """Detect file-level circular dependencies for a repository path."""
+    try:
+        return to_circular_dependency_response(service.detect(request.repository_path))
+    except CircularDependencyError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
 @router.get("/imports/{import_id}/technical-debt", response_model=TechnicalDebtResponse)
 def analyze_imported_repository_technical_debt(
     import_id: str,
@@ -934,6 +989,29 @@ def analyze_imported_repository_technical_debt(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except (RepositoryScanError, TechnicalDebtError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get(
+    "/imports/{import_id}/circular-dependencies",
+    response_model=CircularDependencyResponse,
+)
+def detect_imported_repository_circular_dependencies(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[CircularDependencyService, Depends(get_circular_dependency_service)],
+) -> CircularDependencyResponse:
+    """Detect circular dependencies for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise CircularDependencyError("Repository import has no local path to analyze.")
+        return to_circular_dependency_response(
+            service.detect(Path(imported_repository.repository_path))
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except CircularDependencyError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

@@ -65,6 +65,8 @@ Repository import endpoints:
 - `POST /api/repositories/imports/{import_id}/retrieve`
 - `POST /api/repositories/technical-debt`
 - `GET /api/repositories/imports/{import_id}/technical-debt`
+- `POST /api/repositories/circular-dependencies`
+- `GET /api/repositories/imports/{import_id}/circular-dependencies`
 - `POST /api/repositories/summary`
 - `GET /api/repositories/imports/{import_id}/summary`
 - `POST /api/repositories/architecture-explanation`
@@ -100,6 +102,8 @@ calling retrieval.
 Technical debt endpoints analyze parsed source files and dependencies for
 maintainability risks such as large files, long symbols, broad types, high fan-out,
 parser errors, dependency cycles, and estimated cyclomatic complexity.
+Circular dependency endpoints return dedicated file-level import cycles with
+affected file counts, maximum cycle length, and the import edges in each cycle.
 Repository summary endpoints generate grounded repository overviews from scanner,
 parser, dependency graph, call graph, and vector index metadata.
 Architecture explanation endpoints turn those grounded facts into component,
