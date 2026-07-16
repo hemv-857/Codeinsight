@@ -32,6 +32,7 @@ from backend.app.core.dependencies import (
     get_hybrid_retrieval_service,
     get_knowledge_graph_service,
     get_metadata_service,
+    get_readme_generator_service,
     get_repository_chunker_service,
     get_repository_import_service,
     get_repository_qa_service,
@@ -115,6 +116,12 @@ from backend.app.schemas.parse import (
     SourcePoint,
     SourceSymbolResponse,
 )
+from backend.app.schemas.readme_generator import (
+    GeneratedReadmeResponse,
+    ReadmeGenerationRequest,
+    ReadmeSectionResponse,
+    ReadmeStatsResponse,
+)
 from backend.app.schemas.repository_chunk import (
     RepositoryChunkRequest,
     RepositoryChunkResponseItem,
@@ -186,6 +193,11 @@ from backend.app.services.conversation_memory import (
 from backend.app.services.dead_code import DeadCodeError, DeadCodeReport, DeadCodeService
 from backend.app.services.embedding import EmbeddingError, EmbeddingService, RepositoryEmbeddings
 from backend.app.services.metadata import MetadataService
+from backend.app.services.readme_generator import (
+    GeneratedReadme,
+    ReadmeGeneratorError,
+    ReadmeGeneratorService,
+)
 from backend.app.services.repository_chunker import (
     RepositoryChunkError,
     RepositoryChunkerService,
@@ -642,6 +654,27 @@ def to_repository_summary_response(result: RepositorySummary) -> RepositorySumma
             callable_count=result.stats.callable_count,
             call_count=result.stats.call_count,
             indexed_embedding_count=result.stats.indexed_embedding_count,
+        ),
+    )
+
+
+def to_generated_readme_response(result: GeneratedReadme) -> GeneratedReadmeResponse:
+    """Convert generated README output into an API response."""
+    return GeneratedReadmeResponse(
+        repository_path=result.repository_path,
+        title=result.title,
+        markdown=result.markdown,
+        sections=[
+            ReadmeSectionResponse(heading=section.heading, content=section.content)
+            for section in result.sections
+        ],
+        evidence_paths=list(result.evidence_paths),
+        stats=ReadmeStatsResponse(
+            section_count=result.stats.section_count,
+            word_count=result.stats.word_count,
+            language_count=result.stats.language_count,
+            key_file_count=result.stats.key_file_count,
+            key_symbol_count=result.stats.key_symbol_count,
         ),
     )
 
@@ -1347,6 +1380,38 @@ def summarize_imported_repository(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except (RepositoryScanError, RepositorySummaryError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/readme", response_model=GeneratedReadmeResponse)
+def generate_repository_readme(
+    request: ReadmeGenerationRequest,
+    service: Annotated[ReadmeGeneratorService, Depends(get_readme_generator_service)],
+) -> GeneratedReadmeResponse:
+    """Generate a README from repository code intelligence."""
+    try:
+        return to_generated_readme_response(service.generate(request.repository_path))
+    except (RepositoryScanError, RepositorySummaryError, ReadmeGeneratorError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get("/imports/{import_id}/readme", response_model=GeneratedReadmeResponse)
+def generate_imported_repository_readme(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[ReadmeGeneratorService, Depends(get_readme_generator_service)],
+) -> GeneratedReadmeResponse:
+    """Generate a README for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise ReadmeGeneratorError("Repository import has no local path to document.")
+        return to_generated_readme_response(
+            service.generate(Path(imported_repository.repository_path))
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (RepositoryScanError, RepositorySummaryError, ReadmeGeneratorError) as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 

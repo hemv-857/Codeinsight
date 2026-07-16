@@ -76,6 +76,8 @@ Repository import endpoints:
 - `POST /api/repositories/imports/{import_id}/bug-impact`
 - `POST /api/repositories/summary`
 - `GET /api/repositories/imports/{import_id}/summary`
+- `POST /api/repositories/readme`
+- `GET /api/repositories/imports/{import_id}/readme`
 - `POST /api/repositories/architecture-explanation`
 - `POST /api/repositories/imports/{import_id}/architecture-explanation`
 - `POST /api/repositories/question`
@@ -124,6 +126,9 @@ graph evidence to predict likely root cause, impacted files, confidence,
 recommendations, and an explainable risk score with weighted factors.
 Repository summary endpoints generate grounded repository overviews from scanner,
 parser, dependency graph, call graph, and vector index metadata.
+README generation endpoints turn the repository summary into Markdown sections
+for overview, stats, languages, key files, notable symbols, architecture
+signals, setup entry points, and Forge AI evidence.
 Architecture explanation endpoints turn those grounded facts into component,
 dependency-flow, call-flow, observation, evidence, and confidence sections.
 Repository Q&A endpoints answer questions from repository summaries, architecture

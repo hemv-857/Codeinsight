@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Activity, Braces, GitBranch, Network, Search } from 'lucide-react';
+import { Activity, Braces, FileText, GitBranch, Network, Search } from 'lucide-react';
 import { useState } from 'react';
 
 import { ArchitectureViolationsPanel } from '@/components/architecture-violations-panel';
@@ -11,6 +11,7 @@ import { DeadCodePanel } from '@/components/dead-code-panel';
 import { DependencyGraphPanel } from '@/components/dependency-graph-panel';
 import { HealthBadge } from '@/components/health-badge';
 import { KnowledgeGraphPanel } from '@/components/knowledge-graph-panel';
+import { ReadmeGeneratorPanel } from '@/components/readme-generator-panel';
 import { RepositoryExplorer } from '@/components/repository-explorer';
 import { RepositorySearchPanel } from '@/components/repository-search-panel';
 import { StackTracePanel } from '@/components/stack-trace-panel';
@@ -190,6 +191,19 @@ export function Dashboard() {
                 <Activity className="h-5 w-5 text-accent" />
               </div>
               <BugImpactPanel scan={scan} />
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold">README Generator</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Generate repository-grounded Markdown documentation from indexed code facts.
+                  </p>
+                </div>
+                <FileText className="h-5 w-5 text-accent" />
+              </div>
+              <ReadmeGeneratorPanel scan={scan} />
             </section>
 
             <section className="space-y-4">

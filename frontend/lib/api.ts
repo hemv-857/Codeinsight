@@ -307,6 +307,28 @@ export interface BugImpactPrediction {
   stats: BugImpactStats;
 }
 
+export interface GeneratedReadmeSection {
+  heading: string;
+  content: string;
+}
+
+export interface GeneratedReadmeStats {
+  section_count: number;
+  word_count: number;
+  language_count: number;
+  key_file_count: number;
+  key_symbol_count: number;
+}
+
+export interface GeneratedReadme {
+  repository_path: string;
+  title: string;
+  markdown: string;
+  sections: GeneratedReadmeSection[];
+  evidence_paths: string[];
+  stats: GeneratedReadmeStats;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
@@ -516,6 +538,30 @@ export async function predictImportedBugImpact(
   }
 
   return response.json() as Promise<BugImpactPrediction>;
+}
+
+export async function generateReadme(repositoryPath: string): Promise<GeneratedReadme> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/readme`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repository_path: repositoryPath }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'README generation failed'));
+  }
+
+  return response.json() as Promise<GeneratedReadme>;
+}
+
+export async function generateImportedReadme(importId: string): Promise<GeneratedReadme> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/imports/${importId}/readme`);
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Imported README generation failed'));
+  }
+
+  return response.json() as Promise<GeneratedReadme>;
 }
 
 export async function buildKnowledgeGraph(repositoryPath: string): Promise<KnowledgeGraphResult> {

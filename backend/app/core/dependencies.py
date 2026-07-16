@@ -30,6 +30,7 @@ from backend.app.services.embedding import (
     OpenAIEmbeddingClient,
 )
 from backend.app.services.metadata import MetadataService
+from backend.app.services.readme_generator import ReadmeGeneratorService
 from backend.app.services.repository_chunker import RepositoryChunkerService
 from backend.app.services.repository_import import RepositoryImportService
 from backend.app.services.repository_qa import RepositoryQAService
@@ -295,6 +296,13 @@ def get_repository_qa_service(
         architecture_service=architecture_service,
         retrieval_service=retrieval_service,
     )
+
+
+def get_readme_generator_service(
+    summary_service: Annotated[RepositorySummaryService, Depends(get_repository_summary_service)],
+) -> ReadmeGeneratorService:
+    """Provide README generation operations."""
+    return ReadmeGeneratorService(summary_service=summary_service)
 
 
 @lru_cache(maxsize=16)

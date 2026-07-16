@@ -34,6 +34,7 @@ def test_frontend_dashboard_files_exist() -> None:
         "frontend/components/graph-control-toggle.tsx",
         "frontend/components/knowledge-graph-panel.tsx",
         "frontend/components/providers.tsx",
+        "frontend/components/readme-generator-panel.tsx",
         "frontend/components/repository-explorer.tsx",
         "frontend/components/repository-search-panel.tsx",
         "frontend/components/stack-trace-panel.tsx",
@@ -143,6 +144,17 @@ def test_frontend_bug_impact_uses_bug_impact_apis() -> None:
     assert "/bug-impact" in api_source
     assert "predictBugImpact" in impact_source
     assert "predictImportedBugImpact" in impact_source
+
+
+def test_frontend_readme_generator_uses_readme_apis() -> None:
+    api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
+    readme_source = (ROOT / "frontend" / "components" / "readme-generator-panel.tsx").read_text()
+
+    assert "/api/repositories/readme" in api_source
+    assert "/readme" in api_source
+    assert "generateReadme" in readme_source
+    assert "generateImportedReadme" in readme_source
+    assert "ReadmeGeneratorPanel" in readme_source
 
 
 def test_frontend_knowledge_graph_uses_knowledge_graph_apis() -> None:

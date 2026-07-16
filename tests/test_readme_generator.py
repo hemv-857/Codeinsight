@@ -1,0 +1,149 @@
+import subprocess
+from pathlib import Path
+
+from backend.app.core.config import Settings
+from backend.app.main import create_app
+from backend.app.repositories.vector_store import VectorStoreRepository
+from backend.app.services.readme_generator import ReadmeGeneratorService
+from backend.app.services.repository_scanner import RepositoryScannerService
+from backend.app.services.repository_summary import RepositorySummaryService
+from fastapi.testclient import TestClient
+from graph.call_graph import CallGraphService
+from graph.dependency_graph import DependencyGraphService
+from parser.tree_sitter_parser import TreeSitterParserService
+
+
+def write_file(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content)
+
+
+def create_repository_fixture(path: Path) -> None:
+    write_file(
+        path / "package.json",
+        '{"scripts":{"test":"vitest"},"dependencies":{"next":"latest"}}\n',
+    )
+    write_file(
+        path / "src" / "auth.py",
+        "\n".join(
+            [
+                "class AuthService:",
+                "    def authenticate_user(self, token):",
+                "        return token == 'valid'",
+                "",
+            ]
+        ),
+    )
+    write_file(
+        path / "src" / "main.py",
+        "\n".join(
+            [
+                "from src.auth import AuthService",
+                "",
+                "def request_handler(token):",
+                "    return AuthService().authenticate_user(token)",
+                "",
+            ]
+        ),
+    )
+
+
+def create_git_repository(path: Path) -> None:
+    subprocess.run(["git", "init"], cwd=path, check=True, capture_output=True, text=True)
+    subprocess.run(
+        ["git", "config", "user.email", "forge@example.com"],
+        cwd=path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Forge AI"],
+        cwd=path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    create_repository_fixture(path)
+    subprocess.run(["git", "add", "."], cwd=path, check=True, capture_output=True, text=True)
+    subprocess.run(
+        ["git", "commit", "-m", "Initial commit"],
+        cwd=path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def create_service(database_path: Path) -> ReadmeGeneratorService:
+    scanner = RepositoryScannerService()
+    parser = TreeSitterParserService()
+    return ReadmeGeneratorService(
+        summary_service=RepositorySummaryService(
+            scanner=scanner,
+            parser=parser,
+            dependency_graph=DependencyGraphService(scanner=scanner, parser=parser),
+            call_graph=CallGraphService(scanner=scanner, parser=parser),
+            vector_repository=VectorStoreRepository(str(database_path)),
+        )
+    )
+
+
+def test_readme_generator_builds_grounded_markdown(tmp_path: Path) -> None:
+    create_repository_fixture(tmp_path)
+
+    readme = create_service(tmp_path / "vectors.sqlite3").generate(tmp_path)
+
+    assert readme.title == tmp_path.name
+    assert readme.markdown.startswith(f"# {tmp_path.name}")
+    assert "## Overview" in readme.markdown
+    assert "## Languages" in readme.markdown
+    assert "## Key Files" in readme.markdown
+    assert "`src/auth.py`" in readme.markdown
+    assert "`AuthService`" in readme.markdown
+    assert "`npm install`" in readme.markdown
+    assert readme.stats.section_count == 8
+    assert readme.stats.key_symbol_count >= 2
+
+
+def test_readme_generation_api_for_repository_path(tmp_path: Path) -> None:
+    create_repository_fixture(tmp_path)
+    app = create_app(
+        Settings(environment="test", vector_database_path=tmp_path / "vectors.sqlite3")
+    )
+    client = TestClient(app)
+
+    response = client.post("/api/repositories/readme", json={"repository_path": str(tmp_path)})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["repository_path"] == str(tmp_path.resolve())
+    assert body["markdown"].startswith(f"# {tmp_path.name}")
+    assert body["stats"]["section_count"] == 8
+    assert "src/auth.py" in body["markdown"]
+    assert body["evidence_paths"]
+
+
+def test_readme_generation_api_for_imported_repository(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    create_git_repository(source)
+    app = create_app(
+        Settings(
+            environment="test",
+            repository_storage_path=tmp_path / "imports",
+            vector_database_path=tmp_path / "vectors.sqlite3",
+        )
+    )
+    client = TestClient(app)
+
+    import_response = client.post(
+        "/api/repositories/import",
+        json={"source_type": "local", "source": str(source)},
+    )
+    import_id = import_response.json()["import_id"]
+    readme_response = client.get(f"/api/repositories/imports/{import_id}/readme")
+
+    assert import_response.status_code == 201
+    assert readme_response.status_code == 200
+    assert "Generated By Forge AI" in readme_response.json()["markdown"]
