@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     app_name: str = Field(default="Forge AI")
     environment: Literal["development", "test", "production"] = Field(default="development")
+    graph_database_path: Path = Field(default=Path("data/graphs/forge-ai-graph.sqlite3"))
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(default="INFO")
     repository_clone_timeout_seconds: PositiveInt = Field(default=300)
     metadata_database_path: Path = Field(default=Path("data/forge-ai.sqlite3"))

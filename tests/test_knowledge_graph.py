@@ -11,12 +11,15 @@ from graph.dependency_graph import DependencyGraphService
 from graph.fallback_repository import FallbackKnowledgeGraphRepository
 from graph.knowledge_graph import (
     KnowledgeGraph,
+    KnowledgeGraphError,
     KnowledgeGraphPersistenceResult,
     KnowledgeGraphRepository,
     KnowledgeGraphService,
 )
 from graph.neo4j_repository import Neo4jKnowledgeGraphRepository
 from graph.networkx_repository import NetworkXKnowledgeGraphRepository
+from graph.persistent_repository import PersistentKnowledgeGraphRepository
+from graph.sqlite_repository import SQLiteKnowledgeGraphRepository
 from parser.tree_sitter_parser import TreeSitterParserService
 
 
@@ -195,6 +198,61 @@ def test_networkx_repository_replaces_in_memory_graph(tmp_path: Path) -> None:
     assert repository.graph.has_edge("file:app/main.py", "file:app/service.py", key="IMPORTS")
 
 
+def test_sqlite_repository_replaces_and_reads_graph_snapshot(tmp_path: Path) -> None:
+    repository_path = tmp_path / "repo"
+    repository_path.mkdir()
+    create_repository_fixture(repository_path)
+    service = create_service(RecordingKnowledgeGraphRepository())
+    graph = service.build(repository_path)
+    repository = SQLiteKnowledgeGraphRepository(str(tmp_path / "graphs.sqlite3"))
+
+    result = repository.replace(graph)
+    stored = repository.get(graph.repository_path)
+
+    assert result.backend == "sqlite"
+    assert result.durable_backend is None
+    assert stored.repository_path == graph.repository_path
+    assert stored.stats == graph.stats
+    assert {node.id: node.labels for node in stored.nodes} == {
+        node.id: node.labels for node in graph.nodes
+    }
+    assert {(edge.source, edge.relationship, edge.target) for edge in stored.edges} == {
+        (edge.source, edge.relationship, edge.target) for edge in graph.edges
+    }
+
+
+def test_persistent_repository_writes_live_backend_and_durable_snapshot(tmp_path: Path) -> None:
+    create_repository_fixture(tmp_path)
+    service = create_service(RecordingKnowledgeGraphRepository())
+    graph = service.build(tmp_path)
+    live_repository = RecordingKnowledgeGraphRepository()
+    durable_repository = SQLiteKnowledgeGraphRepository(str(tmp_path / "graphs.sqlite3"))
+    repository = PersistentKnowledgeGraphRepository(
+        live_repository=live_repository,
+        durable_repository=durable_repository,
+    )
+
+    result = repository.replace(graph)
+
+    assert result.persisted is True
+    assert result.backend == "test"
+    assert result.durable_backend == "sqlite"
+    assert live_repository.graph == graph
+    assert durable_repository.get(graph.repository_path).stats == graph.stats
+
+
+def test_knowledge_graph_service_reports_persistence_errors(tmp_path: Path) -> None:
+    create_repository_fixture(tmp_path)
+    service = create_service(FailingKnowledgeGraphRepository())
+
+    try:
+        service.build_and_persist(tmp_path)
+    except KnowledgeGraphError as error:
+        assert "Neo4j unavailable" in str(error)
+    else:
+        raise AssertionError("Expected knowledge graph persistence to fail.")
+
+
 def test_fallback_repository_uses_networkx_when_primary_fails(tmp_path: Path) -> None:
     create_repository_fixture(tmp_path)
     service = create_service(RecordingKnowledgeGraphRepository())
@@ -228,6 +286,7 @@ def test_knowledge_graph_api_for_repository_path(tmp_path: Path) -> None:
     body = response.json()
     assert body["persistence"]["persisted"] is True
     assert body["persistence"]["backend"] == "test"
+    assert body["persistence"]["durable_backend"] is None
     assert body["stats"]["file_count"] == 2
     assert body["stats"]["call_edge_count"] == 2
 

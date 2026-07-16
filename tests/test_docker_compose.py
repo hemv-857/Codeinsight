@@ -39,4 +39,9 @@ def test_compose_services_have_healthchecks() -> None:
 def test_compose_declares_persistent_volumes() -> None:
     config = load_compose_config()
 
-    assert set(config["volumes"]) == {"neo4j-data", "redis-data", "repository-data"}
+    assert set(config["volumes"]) == {
+        "graph-data",
+        "neo4j-data",
+        "redis-data",
+        "repository-data",
+    }

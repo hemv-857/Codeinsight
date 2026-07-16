@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
@@ -12,6 +13,7 @@ from graph.call_graph import CallGraphEdge, CallGraphError, CallGraphService
 from graph.dependency_graph import DependencyEdge, DependencyGraphError, DependencyGraphService
 
 GraphProperty = str | int | bool
+logger = logging.getLogger(__name__)
 
 
 class KnowledgeGraphError(Exception):
@@ -67,6 +69,7 @@ class KnowledgeGraphPersistenceResult:
     node_count: int
     edge_count: int
     backend: str = "unknown"
+    durable_backend: str | None = None
 
 
 class KnowledgeGraphRepository:
@@ -150,7 +153,12 @@ class KnowledgeGraphService:
         self, repository_path: Path
     ) -> tuple[KnowledgeGraph, KnowledgeGraphPersistenceResult]:
         graph = self.build(repository_path)
-        return graph, self.repository.replace(graph)
+        try:
+            persistence = self.repository.replace(graph)
+        except Exception as error:
+            logger.exception("Knowledge graph persistence failed.")
+            raise KnowledgeGraphError(str(error)) from error
+        return graph, persistence
 
     def _add_directories(
         self,

@@ -74,6 +74,7 @@ class Neo4jKnowledgeGraphRepository(KnowledgeGraphRepository):
             node_count=len(graph.nodes),
             edge_count=len(graph.edges),
             backend="neo4j",
+            durable_backend="neo4j",
         )
 
     def _safe_identifier(self, value: str) -> str:

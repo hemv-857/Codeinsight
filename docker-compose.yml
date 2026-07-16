@@ -7,6 +7,7 @@ services:
       dockerfile: docker/backend.Dockerfile
     environment:
       FORGE_AI_ENVIRONMENT: production
+      FORGE_AI_GRAPH_DATABASE_PATH: /app/data/graphs/forge-ai-graph.sqlite3
       FORGE_AI_LOG_LEVEL: INFO
       FORGE_AI_NEO4J_DATABASE: neo4j
       FORGE_AI_NEO4J_PASSWORD: forge-ai-dev
@@ -15,6 +16,7 @@ services:
     ports:
       - '8000:8000'
     volumes:
+      - graph-data:/app/data/graphs
       - repository-data:/app/data/repositories
     healthcheck:
       test:
@@ -112,4 +114,5 @@ services:
 volumes:
   neo4j-data:
   repository-data:
+  graph-data:
   redis-data:

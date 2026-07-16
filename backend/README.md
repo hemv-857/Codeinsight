@@ -14,6 +14,7 @@ Configuration is loaded from environment variables prefixed with `FORGE_AI_`.
 
 - `FORGE_AI_APP_NAME`
 - `FORGE_AI_ENVIRONMENT`
+- `FORGE_AI_GRAPH_DATABASE_PATH`
 - `FORGE_AI_LOG_LEVEL`
 - `FORGE_AI_METADATA_DATABASE_PATH`
 - `FORGE_AI_NEO4J_DATABASE`
@@ -55,4 +56,5 @@ calls, and graph statistics.
 Knowledge graph endpoints build repository architecture nodes and relationships,
 then replace the repository graph in Neo4j. If Neo4j is unavailable, the backend
 falls back to an in-memory NetworkX graph and reports the selected persistence
-backend in the response.
+backend in the response. Each knowledge graph build also writes a durable SQLite
+snapshot for read-back and recovery.

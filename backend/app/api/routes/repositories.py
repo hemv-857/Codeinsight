@@ -121,6 +121,7 @@ def to_knowledge_graph_response(
             node_count=persistence.node_count,
             edge_count=persistence.edge_count,
             backend=persistence.backend,
+            durable_backend=persistence.durable_backend,
         ),
     )
 

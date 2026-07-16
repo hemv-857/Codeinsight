@@ -9,6 +9,8 @@ from graph.fallback_repository import FallbackKnowledgeGraphRepository
 from graph.knowledge_graph import KnowledgeGraphRepository, KnowledgeGraphService
 from graph.neo4j_repository import Neo4jKnowledgeGraphRepository
 from graph.networkx_repository import NetworkXKnowledgeGraphRepository
+from graph.persistent_repository import PersistentKnowledgeGraphRepository
+from graph.sqlite_repository import SQLiteKnowledgeGraphRepository
 from parser.tree_sitter_parser import TreeSitterParserService
 
 from backend.app.core.config import Settings, get_cached_settings
@@ -128,6 +130,32 @@ def get_cached_knowledge_graph_repository(
     )
 
 
+@lru_cache(maxsize=16)
+def get_cached_sqlite_graph_repository(database_path: str) -> SQLiteKnowledgeGraphRepository:
+    """Return a SQLite-backed durable graph snapshot repository."""
+    return SQLiteKnowledgeGraphRepository(database_path)
+
+
+@lru_cache(maxsize=16)
+def get_cached_persistent_knowledge_graph_repository(
+    uri: str,
+    username: str,
+    password: str,
+    database: str,
+    graph_database_path: str,
+) -> KnowledgeGraphRepository:
+    """Return a live graph repository with durable SQLite snapshots."""
+    return PersistentKnowledgeGraphRepository(
+        live_repository=get_cached_knowledge_graph_repository(
+            uri=uri,
+            username=username,
+            password=password,
+            database=database,
+        ),
+        durable_repository=get_cached_sqlite_graph_repository(graph_database_path),
+    )
+
+
 def get_knowledge_graph_service(
     settings: Annotated[Settings, Depends(get_settings)],
     scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
@@ -141,10 +169,11 @@ def get_knowledge_graph_service(
         parser=parser,
         dependency_graph=dependency_graph,
         call_graph=call_graph,
-        repository=get_cached_knowledge_graph_repository(
+        repository=get_cached_persistent_knowledge_graph_repository(
             uri=settings.neo4j_uri,
             username=settings.neo4j_username,
             password=settings.neo4j_password,
             database=settings.neo4j_database,
+            graph_database_path=str(settings.graph_database_path),
         ),
     )

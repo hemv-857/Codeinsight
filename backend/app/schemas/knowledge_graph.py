@@ -29,6 +29,7 @@ class KnowledgeGraphPersistenceResponse(BaseModel):
     node_count: int = Field(ge=0)
     edge_count: int = Field(ge=0)
     backend: str
+    durable_backend: str | None = None
 
     model_config = ConfigDict(frozen=True)
 

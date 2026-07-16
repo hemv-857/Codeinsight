@@ -17,3 +17,7 @@ relationships.
 Milestone 14 adds a NetworkX-backed repository fallback. Knowledge graph writes
 try Neo4j first and fall back to an in-memory `networkx.MultiDiGraph` when the
 primary graph backend is unavailable.
+
+Milestone 15 adds SQLite graph snapshots. Knowledge graph writes update the live
+graph backend and persist the complete repository graph to durable node and edge
+tables for recovery.
