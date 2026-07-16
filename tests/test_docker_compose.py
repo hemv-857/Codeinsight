@@ -44,4 +44,5 @@ def test_compose_declares_persistent_volumes() -> None:
         "neo4j-data",
         "redis-data",
         "repository-data",
+        "vector-data",
     }

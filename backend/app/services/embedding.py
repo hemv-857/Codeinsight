@@ -1,7 +1,10 @@
+import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 from openai import OpenAI
 
@@ -41,6 +44,35 @@ class OpenAIEmbeddingClient:
             logger.exception("OpenAI embedding request failed.")
             raise EmbeddingError(str(error)) from error
         return [list(item.embedding) for item in response.data]
+
+
+class OllamaEmbeddingClient:
+    """Ollama-backed local embedding client."""
+
+    def __init__(self, base_url: str) -> None:
+        self.base_url = base_url.rstrip("/")
+
+    def create_embeddings(self, *, model: str, inputs: list[str]) -> list[list[float]]:
+        vectors: list[list[float]] = []
+        for text in inputs:
+            payload = json.dumps({"model": model, "prompt": text}).encode()
+            request = Request(
+                f"{self.base_url}/api/embeddings",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                with urlopen(request, timeout=60) as response:
+                    body = json.loads(response.read().decode())
+            except (HTTPError, URLError, TimeoutError) as error:
+                logger.exception("Ollama embedding request failed.")
+                raise EmbeddingError(str(error)) from error
+            embedding = body.get("embedding")
+            if not isinstance(embedding, list):
+                raise EmbeddingError("Ollama embedding response did not include a vector.")
+            vectors.append([float(value) for value in embedding])
+        return vectors
 
 
 @dataclass(frozen=True)

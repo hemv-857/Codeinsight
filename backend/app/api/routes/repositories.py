@@ -26,6 +26,7 @@ from backend.app.core.dependencies import (
     get_repository_import_service,
     get_repository_scanner_service,
     get_tree_sitter_parser_service,
+    get_vector_store_service,
 )
 from backend.app.schemas.call_graph import (
     CallGraphEdgeResponse,
@@ -71,6 +72,7 @@ from backend.app.schemas.repository_chunk import (
 )
 from backend.app.schemas.repository_import import RepositoryImportRequest, RepositoryImportResponse
 from backend.app.schemas.repository_scan import RepositoryScanRequest, RepositoryScanResult
+from backend.app.schemas.vector_store import VectorStoreRequest, VectorStoreResponse
 from backend.app.services.embedding import EmbeddingError, EmbeddingService, RepositoryEmbeddings
 from backend.app.services.metadata import MetadataService
 from backend.app.services.repository_chunker import (
@@ -80,6 +82,7 @@ from backend.app.services.repository_chunker import (
 )
 from backend.app.services.repository_import import RepositoryImportError, RepositoryImportService
 from backend.app.services.repository_scanner import RepositoryScanError, RepositoryScannerService
+from backend.app.services.vector_store import VectorStoreResult, VectorStoreService
 
 router = APIRouter(prefix="/api/repositories", tags=["repositories"])
 
@@ -116,6 +119,18 @@ def to_repository_embeddings_response(
             dimensions=embeddings.stats.dimensions,
             skipped_file_count=embeddings.stats.skipped_file_count,
         ),
+    )
+
+
+def to_vector_store_response(result: VectorStoreResult) -> VectorStoreResponse:
+    """Convert vector storage output into an API response."""
+    return VectorStoreResponse(
+        repository_path=result.repository_path,
+        model=result.model,
+        stored_embedding_count=result.stored_embedding_count,
+        dimensions=result.dimensions,
+        backend=result.backend,
+        skipped_file_count=result.skipped_file_count,
     )
 
 
@@ -520,6 +535,38 @@ def generate_imported_repository_embeddings(
             raise EmbeddingError("Repository import has no local path to embed.")
         return to_repository_embeddings_response(
             service.embed_repository(Path(imported_repository.repository_path))
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except (RepositoryScanError, RepositoryChunkError, EmbeddingError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post("/vector-store", response_model=VectorStoreResponse)
+def store_repository_vectors(
+    request: VectorStoreRequest,
+    service: Annotated[VectorStoreService, Depends(get_vector_store_service)],
+) -> VectorStoreResponse:
+    """Generate and store repository embedding vectors."""
+    try:
+        return to_vector_store_response(service.index_repository(request.repository_path))
+    except (RepositoryScanError, RepositoryChunkError, EmbeddingError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get("/imports/{import_id}/vector-store", response_model=VectorStoreResponse)
+def store_imported_repository_vectors(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[VectorStoreService, Depends(get_vector_store_service)],
+) -> VectorStoreResponse:
+    """Generate and store vectors for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise EmbeddingError("Repository import has no local path to index.")
+        return to_vector_store_response(
+            service.index_repository(Path(imported_repository.repository_path))
         )
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error

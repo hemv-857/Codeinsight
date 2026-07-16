@@ -15,11 +15,18 @@ from parser.tree_sitter_parser import TreeSitterParserService
 
 from backend.app.core.config import Settings, get_cached_settings
 from backend.app.repositories.metadata import MetadataRepository
-from backend.app.services.embedding import EmbeddingService, OpenAIEmbeddingClient
+from backend.app.repositories.vector_store import VectorStoreRepository
+from backend.app.services.embedding import (
+    EmbeddingClient,
+    EmbeddingService,
+    OllamaEmbeddingClient,
+    OpenAIEmbeddingClient,
+)
 from backend.app.services.metadata import MetadataService
 from backend.app.services.repository_chunker import RepositoryChunkerService
 from backend.app.services.repository_import import RepositoryImportService
 from backend.app.services.repository_scanner import RepositoryScannerService
+from backend.app.services.vector_store import VectorStoreService
 
 
 def get_settings() -> Settings:
@@ -116,6 +123,12 @@ def get_cached_openai_embedding_client(api_key: str) -> OpenAIEmbeddingClient:
     return OpenAIEmbeddingClient(api_key=api_key)
 
 
+@lru_cache(maxsize=16)
+def get_cached_ollama_embedding_client(base_url: str) -> OllamaEmbeddingClient:
+    """Return an Ollama-backed local embedding client."""
+    return OllamaEmbeddingClient(base_url=base_url)
+
+
 def get_embedding_service(
     settings: Annotated[Settings, Depends(get_settings)],
     chunker: Annotated[RepositoryChunkerService, Depends(get_repository_chunker_service)],
@@ -124,11 +137,35 @@ def get_embedding_service(
     api_key = (
         settings.openai_api_key.get_secret_value().strip() if settings.openai_api_key else None
     )
+    client: EmbeddingClient | None
+    if settings.embedding_provider == "ollama":
+        client = get_cached_ollama_embedding_client(settings.ollama_base_url)
+        model = settings.ollama_embedding_model
+    else:
+        client = get_cached_openai_embedding_client(api_key) if api_key else None
+        model = settings.embedding_model
     return EmbeddingService(
         chunker=chunker,
-        client=get_cached_openai_embedding_client(api_key) if api_key else None,
-        model=settings.embedding_model,
+        client=client,
+        model=model,
         batch_size=settings.embedding_batch_size,
+    )
+
+
+@lru_cache(maxsize=16)
+def get_cached_vector_store_repository(database_path: str) -> VectorStoreRepository:
+    """Return a SQLite-backed vector repository."""
+    return VectorStoreRepository(database_path)
+
+
+def get_vector_store_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    embedding_service: Annotated[EmbeddingService, Depends(get_embedding_service)],
+) -> VectorStoreService:
+    """Provide vector storage operations."""
+    return VectorStoreService(
+        embedding_service=embedding_service,
+        repository=get_cached_vector_store_repository(str(settings.vector_database_path)),
     )
 
 

@@ -24,10 +24,14 @@ Configuration is loaded from environment variables prefixed with `FORGE_AI_`.
 - `FORGE_AI_OPENAI_API_KEY`
 - `FORGE_AI_EMBEDDING_BATCH_SIZE`
 - `FORGE_AI_EMBEDDING_MODEL`
+- `FORGE_AI_EMBEDDING_PROVIDER`
+- `FORGE_AI_OLLAMA_BASE_URL`
+- `FORGE_AI_OLLAMA_EMBEDDING_MODEL`
 - `FORGE_AI_REPOSITORY_CHUNK_MAX_CHARS`
 - `FORGE_AI_REPOSITORY_CLONE_TIMEOUT_SECONDS`
 - `FORGE_AI_REPOSITORY_STORAGE_PATH`
 - `FORGE_AI_REPOSITORY_ZIP_MAX_BYTES`
+- `FORGE_AI_VECTOR_DATABASE_PATH`
 - `FORGE_AI_VERSION`
 
 The health endpoint is available at `/api/health`.
@@ -54,6 +58,8 @@ Repository import endpoints:
 - `GET /api/repositories/imports/{import_id}/chunks`
 - `POST /api/repositories/embeddings`
 - `GET /api/repositories/imports/{import_id}/embeddings`
+- `POST /api/repositories/vector-store`
+- `GET /api/repositories/imports/{import_id}/vector-store`
 
 Parse responses include compact AST metadata and extracted source symbols.
 Supported parser languages are C, C++, Go, Java, JavaScript, Python, Rust, and TypeScript.
@@ -70,3 +76,7 @@ Repository chunk endpoints generate deterministic file and symbol chunks for the
 embedding pipeline without generating embeddings.
 Embedding endpoints generate OpenAI embeddings for repository chunks. They require
 `FORGE_AI_OPENAI_API_KEY` and default to `text-embedding-3-small`.
+For demos without an OpenAI key, set `FORGE_AI_EMBEDDING_PROVIDER=ollama`, run
+Ollama locally, and use `FORGE_AI_OLLAMA_EMBEDDING_MODEL=nomic-embed-text`.
+Vector storage endpoints persist generated embeddings to SQLite and return compact
+storage statistics instead of full vector payloads.
