@@ -1,6 +1,12 @@
 {
-  "buildCommand": "cd frontend && npm run build",
-  "outputDirectory": "frontend/.next",
-  "framework": "nextjs",
-  "installCommand": "cd frontend && npm install"
+  "services": {
+    "web": {
+      "root": ".",
+      "framework": "nextjs",
+      "installCommand": "npm ci",
+      "buildCommand": "npm run build --workspace @codeinsight/frontend",
+      "outputDirectory": "frontend/.next"
+    }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": { "service": "web" } }]
 }
