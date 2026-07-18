@@ -23,7 +23,7 @@ def load_compose_config() -> dict[str, Any]:
 def test_compose_includes_required_services() -> None:
     config = load_compose_config()
 
-    assert set(config["services"]) == {"backend", "frontend", "neo4j", "redis", "worker"}
+    assert set(config["services"]) == {"backend", "frontend", "neo4j", "worker"}
 
 
 def test_compose_services_have_healthchecks() -> None:
@@ -43,7 +43,6 @@ def test_compose_declares_persistent_volumes() -> None:
         "conversation-data",
         "graph-data",
         "neo4j-data",
-        "redis-data",
         "repository-data",
         "vector-data",
     }

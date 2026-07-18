@@ -21,6 +21,7 @@ export function ArchitectureDocsPanel({ scan }: ArchitectureDocsPanelProps) {
   const [document, setDocument] = useState<GeneratedArchitectureDoc | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const activePath = repositoryPath.trim() || scan?.repository_path || '';
 
   async function generate(source: 'path' | 'import') {
@@ -62,7 +63,10 @@ export function ArchitectureDocsPanel({ scan }: ArchitectureDocsPanelProps) {
 
   function copyMarkdown() {
     if (document) {
-      void navigator.clipboard.writeText(document.markdown);
+      void navigator.clipboard.writeText(document.markdown).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
     }
   }
 
@@ -149,7 +153,7 @@ export function ArchitectureDocsPanel({ scan }: ArchitectureDocsPanelProps) {
               className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-muted px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
             >
               <Copy className="h-4 w-4" />
-              Copy Markdown
+              {copied ? 'Copied!' : 'Copy Markdown'}
             </button>
             <div className="rounded-md bg-muted p-3 text-sm">
               <p className="text-xs uppercase text-muted-foreground">Evidence</p>

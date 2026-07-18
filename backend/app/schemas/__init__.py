@@ -1,1 +1,1 @@
-"""Pydantic schemas for Forge AI APIs."""
+"""Pydantic schemas for CodeInsight APIs."""

@@ -6,7 +6,7 @@ Your job is to act as a senior staff software engineer, software architect, prod
 
 You are building a production-quality project called:
 
-# Forge AI
+# CodeInsight
 
 "Google Maps for Software Systems"
 
@@ -60,7 +60,7 @@ Prioritize clean architecture over speed.
 
 Users connect a Git repository.
 
-Forge AI automatically:
+CodeInsight automatically:
 
 • Indexes the repository
 • Parses every source file
@@ -766,7 +766,7 @@ Keep modules cohesive.
 
 # FINAL GOAL
 
-By the end of development, Forge AI should be a polished, production-quality application that can be demonstrated in under three minutes and convincingly show:
+By the end of development, CodeInsight should be a polished, production-quality application that can be demonstrated in under three minutes and convincingly show:
 
 1. Repository indexing
 2. Interactive architecture visualization

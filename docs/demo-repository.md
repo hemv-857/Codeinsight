@@ -16,17 +16,17 @@ Q&A scenes.
 Clone the repository before recording:
 
 ```bash
-git clone https://github.com/fastapi/fastapi /tmp/forge-ai-demo-fastapi
+git clone https://github.com/fastapi/fastapi /tmp/codeinsight-demo-fastapi
 ```
 
-Start Forge AI:
+Start CodeInsight:
 
 ```bash
 .venv/bin/uvicorn backend.app.main:app --reload
-npm run dev --workspace @forge-ai/frontend
+npm run dev --workspace @codeinsight/frontend
 ```
 
-In the dashboard, scan `/tmp/forge-ai-demo-fastapi`, then run:
+In the dashboard, scan `/tmp/codeinsight-demo-fastapi`, then run:
 
 - Repository explorer
 - Dependency graph

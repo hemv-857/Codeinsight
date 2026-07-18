@@ -1,7 +1,7 @@
-PYTHON := .venv/bin/python
-BLACK := .venv/bin/black
-RUFF := .venv/bin/ruff
-MYPY := .venv/bin/mypy
+PYTHON := .venv313/bin/python
+BLACK := .venv313/bin/black
+RUFF := .venv313/bin/ruff
+MYPY := .venv313/bin/mypy
 
 .PHONY: build docker-build docker-validate format format-check frontend-build install-python-tools lint test typecheck verify
 
@@ -14,7 +14,7 @@ docker-build:
 	docker-compose build backend frontend worker
 
 frontend-build:
-	npm run build --workspace @forge-ai/frontend
+	npm run build --workspace @codeinsight/frontend
 
 format:
 	npm run format

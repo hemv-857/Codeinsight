@@ -20,6 +20,7 @@ export function ReadmeGeneratorPanel({ scan }: ReadmeGeneratorPanelProps) {
   const [readme, setReadme] = useState<GeneratedReadme | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const activePath = repositoryPath.trim() || scan?.repository_path || '';
 
   async function generate(source: 'path' | 'import') {
@@ -56,7 +57,10 @@ export function ReadmeGeneratorPanel({ scan }: ReadmeGeneratorPanelProps) {
 
   function copyMarkdown() {
     if (readme) {
-      void navigator.clipboard.writeText(readme.markdown);
+      void navigator.clipboard.writeText(readme.markdown).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
     }
   }
 
@@ -136,7 +140,7 @@ export function ReadmeGeneratorPanel({ scan }: ReadmeGeneratorPanelProps) {
               className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-border bg-muted px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
             >
               <Copy className="h-4 w-4" />
-              Copy Markdown
+              {copied ? 'Copied!' : 'Copy Markdown'}
             </button>
             <div className="rounded-md bg-muted p-3 text-sm">
               <p className="text-xs uppercase text-muted-foreground">Evidence</p>

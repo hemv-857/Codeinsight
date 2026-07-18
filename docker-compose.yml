@@ -1,4 +1,4 @@
-name: forge-ai
+name: codeinsight
 
 services:
   backend:
@@ -6,16 +6,16 @@ services:
       context: .
       dockerfile: docker/backend.Dockerfile
     environment:
-      FORGE_AI_ENVIRONMENT: production
-      FORGE_AI_CONVERSATION_DATABASE_PATH: /app/data/conversations/forge-ai-conversations.sqlite3
-      FORGE_AI_GRAPH_DATABASE_PATH: /app/data/graphs/forge-ai-graph.sqlite3
-      FORGE_AI_LOG_LEVEL: INFO
-      FORGE_AI_NEO4J_DATABASE: neo4j
-      FORGE_AI_NEO4J_PASSWORD: forge-ai-dev
-      FORGE_AI_NEO4J_URI: bolt://neo4j:7687
-      FORGE_AI_NEO4J_USERNAME: neo4j
-      FORGE_AI_OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      FORGE_AI_VECTOR_DATABASE_PATH: /app/data/vectors/forge-ai-vectors.sqlite3
+      CODEINSIGHT_ENVIRONMENT: production
+      CODEINSIGHT_CONVERSATION_DATABASE_PATH: /app/data/conversations/codeinsight-conversations.sqlite3
+      CODEINSIGHT_GRAPH_DATABASE_PATH: /app/data/graphs/codeinsight-graph.sqlite3
+      CODEINSIGHT_LOG_LEVEL: INFO
+      CODEINSIGHT_NEO4J_DATABASE: neo4j
+      CODEINSIGHT_NEO4J_PASSWORD: codeinsight-dev
+      CODEINSIGHT_NEO4J_URI: bolt://neo4j:7687
+      CODEINSIGHT_NEO4J_USERNAME: neo4j
+      CODEINSIGHT_OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CODEINSIGHT_VECTOR_DATABASE_PATH: /app/data/vectors/codeinsight-vectors.sqlite3
     ports:
       - '8000:8000'
     volumes:
@@ -63,26 +63,14 @@ services:
   neo4j:
     image: neo4j:5-community
     environment:
-      NEO4J_AUTH: neo4j/forge-ai-dev
+      NEO4J_AUTH: neo4j/codeinsight-dev
     ports:
       - '7474:7474'
       - '7687:7687'
     volumes:
       - neo4j-data:/data
     healthcheck:
-      test: ['CMD-SHELL', 'cypher-shell -u neo4j -p forge-ai-dev "RETURN 1" >/dev/null']
-      interval: 10s
-      timeout: 5s
-      retries: 6
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - '6379:6379'
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ['CMD-SHELL', 'cypher-shell -u neo4j -p codeinsight-dev "RETURN 1" >/dev/null']
       interval: 10s
       timeout: 5s
       retries: 6
@@ -92,16 +80,14 @@ services:
       context: .
       dockerfile: docker/worker.Dockerfile
     environment:
-      FORGE_AI_ENVIRONMENT: production
-      FORGE_AI_LOG_LEVEL: INFO
-      FORGE_AI_WORKER_PORT: '8001'
+      CODEINSIGHT_ENVIRONMENT: production
+      CODEINSIGHT_LOG_LEVEL: INFO
+      CODEINSIGHT_WORKER_PORT: '8001'
     ports:
       - '8001:8001'
     volumes:
       - repository-data:/app/data/repositories
     depends_on:
-      redis:
-        condition: service_healthy
       neo4j:
         condition: service_healthy
     healthcheck:
@@ -122,4 +108,3 @@ volumes:
   repository-data:
   graph-data:
   vector-data:
-  redis-data:

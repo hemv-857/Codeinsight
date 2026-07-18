@@ -1,1 +1,1 @@
-"""Forge AI worker package."""
+"""CodeInsight worker package."""

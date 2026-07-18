@@ -373,6 +373,59 @@ export interface MermaidDiagramSet {
   stats: MermaidDiagramStats;
 }
 
+export interface UnderstandingComponent {
+  name: string;
+  path: string;
+  role: string;
+  evidence: string[];
+}
+
+export interface UnderstandingFile {
+  path: string;
+  language: string | null;
+  reason: string;
+  score: number;
+}
+
+export interface UnderstandingSymbol {
+  name: string;
+  kind: string;
+  path: string;
+  line: number;
+  reason: string;
+}
+
+export interface SystemUnderstandingStats {
+  file_count: number;
+  parsed_file_count: number;
+  symbol_count: number;
+  dependency_count: number;
+  call_count: number;
+  diagram_count: number;
+  confidence: number;
+}
+
+export interface SystemUnderstandingReport {
+  repository_path: string;
+  title: string;
+  application_overview: string;
+  architecture_summary: string;
+  main_components: UnderstandingComponent[];
+  critical_execution_flows: string[];
+  important_services: UnderstandingSymbol[];
+  database_interactions: string[];
+  external_dependencies: string[];
+  high_risk_modules: UnderstandingFile[];
+  suggested_learning_path: string[];
+  architecture_diagram: string;
+  dependency_visualization: string;
+  important_files: UnderstandingFile[];
+  related_symbols: UnderstandingSymbol[];
+  evidence_paths: string[];
+  markdown: string;
+  stats: SystemUnderstandingStats;
+}
+
 export interface DeveloperOnboardingSection {
   heading: string;
   content: string;
@@ -505,6 +558,52 @@ export interface SecurityReview {
   stats: SecurityReviewStats;
 }
 
+export type ContributionCategory =
+  | 'bug'
+  | 'security'
+  | 'code_smell'
+  | 'missing_test'
+  | 'missing_docs'
+  | 'performance'
+  | 'accessibility'
+  | 'api_design';
+
+export interface ContributionFinding {
+  category: ContributionCategory;
+  severity: ReviewSeverity;
+  path: string;
+  line: number;
+  title: string;
+  description: string;
+  evidence: string[];
+  suggested_fix: string;
+  impact: string;
+  effort: string;
+}
+
+export interface ContributionStats {
+  file_count: number;
+  scanned_file_count: number;
+  finding_count: number;
+  bug_count: number;
+  security_count: number;
+  code_smell_count: number;
+  missing_test_count: number;
+  missing_docs_count: number;
+  performance_count: number;
+  contribution_score: number;
+  confidence: number;
+}
+
+export interface OpenSourceContributionResult {
+  repository_path: string;
+  focus: string | null;
+  findings: ContributionFinding[];
+  recommendations: string[];
+  summary: string;
+  stats: ContributionStats;
+}
+
 interface ApiErrorPayload {
   error?: unknown;
   detail?: unknown;
@@ -512,7 +611,7 @@ interface ApiErrorPayload {
   status_code?: unknown;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8002';
 
 export async function getBackendHealth(): Promise<HealthResponse> {
   const response = await fetch(`${API_BASE_URL}/api/health`);
@@ -821,6 +920,38 @@ export async function generateImportedMermaidDiagrams(
   return response.json() as Promise<MermaidDiagramSet>;
 }
 
+export async function generateSystemUnderstanding(
+  repositoryPath: string,
+): Promise<SystemUnderstandingReport> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/system-understanding`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repository_path: repositoryPath }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'System understanding generation failed'));
+  }
+
+  return response.json() as Promise<SystemUnderstandingReport>;
+}
+
+export async function generateImportedSystemUnderstanding(
+  importId: string,
+): Promise<SystemUnderstandingReport> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/repositories/imports/${importId}/system-understanding`,
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await responseError(response, 'Imported system understanding generation failed'),
+    );
+  }
+
+  return response.json() as Promise<SystemUnderstandingReport>;
+}
+
 export async function generateDeveloperOnboarding(
   repositoryPath: string,
   focus?: string,
@@ -1113,6 +1244,45 @@ export async function analyzeImportedTechnicalDebt(importId: string): Promise<Te
   }
 
   return response.json() as Promise<TechnicalDebtReport>;
+}
+
+export async function analyzeOpenSourceContribution(
+  repositoryPath: string,
+  focus?: string,
+): Promise<OpenSourceContributionResult> {
+  const response = await fetch(`${API_BASE_URL}/api/repositories/open-source-contribution`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repository_path: repositoryPath, focus: focus || null }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await responseError(response, 'Open source contribution analysis failed'));
+  }
+
+  return response.json() as Promise<OpenSourceContributionResult>;
+}
+
+export async function analyzeImportedOpenSourceContribution(
+  importId: string,
+  focus?: string,
+): Promise<OpenSourceContributionResult> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/repositories/imports/${importId}/open-source-contribution`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ focus: focus || null }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await responseError(response, 'Imported open source contribution analysis failed'),
+    );
+  }
+
+  return response.json() as Promise<OpenSourceContributionResult>;
 }
 
 async function responseError(response: Response, fallback: string): Promise<string> {

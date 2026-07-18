@@ -1,4 +1,11 @@
+import gc
 import logging
+import os
+import sys
+
+if sys.version_info[:3] == (3, 13, 5):
+    os.environ.setdefault("PYTHON_JIT", "0")
+    gc.set_threshold(0)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,10 +20,11 @@ from backend.app.core.logging import configure_logging
 logger = logging.getLogger(__name__)
 
 LOCAL_DEVELOPMENT_ORIGIN_REGEX = r"^https?://(localhost|127\.0\.0\.1):\d+$"
+VERCEL_PREVIEW_REGEX = r"^https?://.*\.vercel\.app$"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
-    """Create and configure the Forge AI FastAPI application."""
+    """Create and configure the CodeInsight FastAPI application."""
     resolved_settings = settings or get_cached_settings()
     configure_logging(resolved_settings)
 
@@ -24,13 +32,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title=resolved_settings.app_name,
         version=resolved_settings.version,
     )
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex=LOCAL_DEVELOPMENT_ORIGIN_REGEX,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+
+    custom_origins = [
+        origin.strip() for origin in resolved_settings.cors_origins.split(",") if origin.strip()
+    ]
+    if custom_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=custom_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    else:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origin_regex=f"{LOCAL_DEVELOPMENT_ORIGIN_REGEX[1:-1]}|{VERCEL_PREVIEW_REGEX[1:-1]}",
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     def provide_settings() -> Settings:
         return resolved_settings
@@ -40,7 +61,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health_router)
     app.include_router(repositories_router)
 
-    logger.info("Forge AI backend started", extra={"environment": resolved_settings.environment})
+    logger.info("CodeInsight backend started", extra={"environment": resolved_settings.environment})
     return app
 
 

@@ -1,6 +1,6 @@
 # Production Release
 
-Milestone 50 packages Forge AI for demonstration and release review.
+Milestone 50 packages CodeInsight for demonstration and release review.
 
 ## Release Artifacts
 
@@ -32,13 +32,13 @@ The gate includes:
 Start the backend:
 
 ```bash
-FORGE_AI_PARSER_PROVIDER=safe .venv313/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8002
+CODEINSIGHT_PARSER_PROVIDER=safe .venv313/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8002
 ```
 
 Start the frontend:
 
 ```bash
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8002 npm run dev --workspace @forge-ai/frontend -- --port 3002
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8002 npm run dev --workspace @codeinsight/frontend -- --port 3002
 ```
 
 Optional full stack:
@@ -60,12 +60,12 @@ docker-compose up --build
 
 ## Operational Notes
 
-- OpenAI embeddings require `FORGE_AI_OPENAI_API_KEY`.
-- Local demos can use Ollama via `FORGE_AI_EMBEDDING_PROVIDER=ollama`.
+- OpenAI embeddings require `CODEINSIGHT_OPENAI_API_KEY`.
+- Local demos can use Ollama via `CODEINSIGHT_EMBEDDING_PROVIDER=ollama`.
 - Neo4j is optional at runtime; the backend falls back to NetworkX and writes
   durable graph snapshots to SQLite.
 - API errors return structured JSON envelopes with `X-Request-ID` correlation.
 - Use Python 3.13 for local macOS demos; Python 3.14.6 can segfault while
   scanning repositories from AnyIO worker threads.
-- Use `FORGE_AI_PARSER_PROVIDER=safe` if native Tree-sitter bindings crash
+- Use `CODEINSIGHT_PARSER_PROVIDER=safe` if native Tree-sitter bindings crash
   during live demo parsing.

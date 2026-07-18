@@ -1,1 +1,1 @@
-"""Application services for Forge AI."""
+"""Application services for CodeInsight."""

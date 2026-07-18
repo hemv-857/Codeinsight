@@ -85,6 +85,11 @@ class SQLiteKnowledgeGraphRepository(KnowledgeGraphRepository):
 
     def replace(self, graph: KnowledgeGraph) -> KnowledgeGraphPersistenceResult:
         persisted_at = datetime.now(UTC).isoformat()
+        sqlite_max_variables = 900
+        node_columns = 4
+        edge_columns = 6
+        node_batch_size = sqlite_max_variables // node_columns
+        edge_batch_size = sqlite_max_variables // edge_columns
         with self.engine.begin() as connection:
             connection.execute(
                 delete(knowledge_graph_edges_table).where(
@@ -115,33 +120,37 @@ class SQLiteKnowledgeGraphRepository(KnowledgeGraphRepository):
                 },
             )
             if graph.nodes:
-                connection.execute(
-                    insert(knowledge_graph_nodes_table),
-                    [
-                        {
-                            "repository_path": graph.repository_path,
-                            "node_id": node.id,
-                            "labels": json.dumps(node.labels),
-                            "properties": json.dumps(node.properties),
-                        }
-                        for node in graph.nodes
-                    ],
-                )
+                node_rows = [
+                    {
+                        "repository_path": graph.repository_path,
+                        "node_id": node.id,
+                        "labels": json.dumps(node.labels),
+                        "properties": json.dumps(node.properties),
+                    }
+                    for node in graph.nodes
+                ]
+                for i in range(0, len(node_rows), node_batch_size):
+                    connection.execute(
+                        insert(knowledge_graph_nodes_table),
+                        node_rows[i : i + node_batch_size],
+                    )
             if graph.edges:
-                connection.execute(
-                    insert(knowledge_graph_edges_table),
-                    [
-                        {
-                            "repository_path": graph.repository_path,
-                            "edge_index": index,
-                            "source": edge.source,
-                            "target": edge.target,
-                            "relationship": edge.relationship,
-                            "properties": json.dumps(edge.properties),
-                        }
-                        for index, edge in enumerate(graph.edges)
-                    ],
-                )
+                edge_rows = [
+                    {
+                        "repository_path": graph.repository_path,
+                        "edge_index": index,
+                        "source": edge.source,
+                        "target": edge.target,
+                        "relationship": edge.relationship,
+                        "properties": json.dumps(edge.properties),
+                    }
+                    for index, edge in enumerate(graph.edges)
+                ]
+                for i in range(0, len(edge_rows), edge_batch_size):
+                    connection.execute(
+                        insert(knowledge_graph_edges_table),
+                        edge_rows[i : i + edge_batch_size],
+                    )
         return KnowledgeGraphPersistenceResult(
             persisted=True,
             node_count=len(graph.nodes),
@@ -221,6 +230,12 @@ class SQLiteKnowledgeGraphRepository(KnowledgeGraphRepository):
         }
 
     def _decode_property(self, value: Any) -> GraphProperty:
-        if isinstance(value, bool | int | str):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value) if value == int(value) else value
+        if isinstance(value, str):
             return value
         raise ValueError("Knowledge graph properties must be strings, integers, or booleans.")

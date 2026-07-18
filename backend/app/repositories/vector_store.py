@@ -58,6 +58,9 @@ class VectorStoreRepository:
 
     def replace(self, embeddings: RepositoryEmbeddings) -> int:
         stored_at = datetime.now(UTC).isoformat()
+        sqlite_max_variables = 900
+        columns_per_row = 15
+        batch_size = sqlite_max_variables // columns_per_row
         with self.engine.begin() as connection:
             connection.execute(
                 delete(vector_embeddings_table).where(
@@ -65,29 +68,28 @@ class VectorStoreRepository:
                 )
             )
             if embeddings.embeddings:
-                connection.execute(
-                    insert(vector_embeddings_table),
-                    [
-                        {
-                            "repository_path": embeddings.repository_path,
-                            "chunk_id": embedding.chunk_id,
-                            "model": embeddings.model,
-                            "dimensions": len(embedding.embedding),
-                            "path": embedding.path,
-                            "kind": embedding.kind,
-                            "language": embedding.language,
-                            "start_line": embedding.start_line,
-                            "end_line": embedding.end_line,
-                            "content": embedding.content,
-                            "symbol_kind": embedding.symbol_kind,
-                            "symbol_name": embedding.symbol_name,
-                            "symbol_parent": embedding.symbol_parent,
-                            "embedding": json.dumps(list(embedding.embedding)),
-                            "stored_at": stored_at,
-                        }
-                        for embedding in embeddings.embeddings
-                    ],
-                )
+                rows = [
+                    {
+                        "repository_path": embeddings.repository_path,
+                        "chunk_id": embedding.chunk_id,
+                        "model": embeddings.model,
+                        "dimensions": len(embedding.embedding),
+                        "path": embedding.path,
+                        "kind": embedding.kind,
+                        "language": embedding.language,
+                        "start_line": embedding.start_line,
+                        "end_line": embedding.end_line,
+                        "content": embedding.content,
+                        "symbol_kind": embedding.symbol_kind,
+                        "symbol_name": embedding.symbol_name,
+                        "symbol_parent": embedding.symbol_parent,
+                        "embedding": json.dumps(list(embedding.embedding)),
+                        "stored_at": stored_at,
+                    }
+                    for embedding in embeddings.embeddings
+                ]
+                for i in range(0, len(rows), batch_size):
+                    connection.execute(insert(vector_embeddings_table), rows[i : i + batch_size])
         return len(embeddings.embeddings)
 
     def list_repository(self, repository_path: str) -> tuple[ChunkEmbedding, ...]:

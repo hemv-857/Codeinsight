@@ -94,11 +94,19 @@ def test_frontend_dashboard_has_polished_readiness_surface() -> None:
 def test_frontend_repository_explorer_uses_scan_apis() -> None:
     api_source = (ROOT / "frontend" / "lib" / "api.ts").read_text()
     explorer_source = (ROOT / "frontend" / "components" / "repository-explorer.tsx").read_text()
+    repo_input_source = (ROOT / "frontend" / "components" / "repo-input-bar.tsx").read_text()
+    import_progress_source = (ROOT / "frontend" / "components" / "import-progress.tsx").read_text()
 
     assert "/api/repositories/scan" in api_source
     assert "/api/repositories/imports/" in api_source
-    assert "scanRepository" in explorer_source
-    assert "scanImportedRepository" in explorer_source
+    assert "scanRepository" in api_source
+    assert "scanImportedRepository" in api_source
+    assert "RepoInputBar" in explorer_source
+    assert (
+        "/api/repositories/import" in import_progress_source
+        or "/api/repositories/import" in repo_input_source
+    )
+    assert "isGithubUrl" in repo_input_source
 
 
 def test_frontend_dependency_graph_uses_dependency_graph_apis() -> None:

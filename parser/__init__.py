@@ -1,1 +1,1 @@
-"""Forge AI parser package."""
+"""CodeInsight parser package."""

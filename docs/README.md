@@ -1,4 +1,4 @@
-# Forge AI Docs
+# CodeInsight Docs
 
 Release documentation:
 

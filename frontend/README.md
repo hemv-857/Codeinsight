@@ -1,18 +1,18 @@
 # Frontend
 
-Next.js application code for Forge AI.
+Next.js application code for CodeInsight.
 
 ## Local Commands
 
-- Start the dashboard: `npm run dev --workspace @forge-ai/frontend`
-- Build the dashboard: `npm run build --workspace @forge-ai/frontend`
-- Type check: `npm run typecheck --workspace @forge-ai/frontend`
+- Start the dashboard: `npm run dev --workspace @codeinsight/frontend`
+- Build the dashboard: `npm run build --workspace @codeinsight/frontend`
+- Type check: `npm run typecheck --workspace @codeinsight/frontend`
 
 ## Environment
 
 - `NEXT_PUBLIC_API_BASE_URL` defaults to `http://localhost:8000`.
 
-The first screen is the dark-mode Forge AI dashboard with backend health, a repository explorer, repository search, workflow status, and graph panels.
+The first screen is the dark-mode CodeInsight dashboard with backend health, a repository explorer, repository search, workflow status, and graph panels.
 
 The dashboard includes a keyboard skip link, labelled regions, visible focus styles, reduced-motion handling, switch semantics for graph controls, and polite health-status announcements.
 

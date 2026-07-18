@@ -139,7 +139,7 @@ class DeveloperOnboardingService:
     def _workflow(self) -> str:
         return "\n".join(
             [
-                "1. Import or scan the repository in Forge AI.",
+                "1. Import or scan the repository in CodeInsight.",
                 "2. Review the repository snapshot and key files before changing code.",
                 "3. Inspect dependency and call-flow diagrams for the area you plan to edit.",
                 "4. Run the project-specific setup and validation commands from this guide.",
@@ -153,7 +153,7 @@ class DeveloperOnboardingService:
                 "- Confirm dependencies install successfully.",
                 "- Run the repository's tests or closest available validation command.",
                 "- Check impacted files in dependency and call graphs before large edits.",
-                "- Re-run Forge AI search, technical debt, and bug impact tools after changes.",
+                "- Re-run CodeInsight search, technical debt, and bug impact tools after changes.",
                 "- Update generated docs when architecture or onboarding flow changes.",
             ]
         )

@@ -1,1 +1,1 @@
-"""API package for Forge AI."""
+"""API package for CodeInsight."""

@@ -52,7 +52,7 @@ def create_git_repository(path: Path) -> None:
         text=True,
     )
     subprocess.run(
-        ["git", "config", "user.name", "Forge AI"],
+        ["git", "config", "user.name", "CodeInsight"],
         cwd=path,
         check=True,
         capture_output=True,
@@ -110,7 +110,7 @@ def test_embedding_service_requires_api_key_client(tmp_path: Path) -> None:
     try:
         service.embed_repository(tmp_path)
     except EmbeddingError as error:
-        assert "OpenAI API key" in str(error)
+        assert "Embedding client is not configured" in str(error)
     else:
         raise AssertionError("Expected embedding generation to require a client.")
 
@@ -187,4 +187,4 @@ def test_embedding_api_reports_missing_api_key(tmp_path: Path) -> None:
     )
 
     assert response.status_code == 400
-    assert "OpenAI API key" in response.json()["detail"]
+    assert "Embedding client is not configured" in response.json()["detail"]

@@ -55,7 +55,7 @@ def create_git_repository(path: Path) -> None:
         text=True,
     )
     subprocess.run(
-        ["git", "config", "user.name", "Forge AI"],
+        ["git", "config", "user.name", "CodeInsight"],
         cwd=path,
         check=True,
         capture_output=True,
@@ -180,11 +180,11 @@ def test_ollama_embedding_client_uses_local_embedding_endpoint(monkeypatch: Any)
             return None
 
         def read(self) -> bytes:
-            return b'{"embedding": [1.0, 5.0]}'
+            return b'{"embeddings": [[1.0, 5.0]]}'
 
     def fake_urlopen(request: Any, timeout: int) -> FakeResponse:
-        assert request.full_url == "http://localhost:11434/api/embeddings"
-        assert timeout == 60
+        assert request.full_url == "http://localhost:11434/api/embed"
+        assert timeout == 120
         return FakeResponse()
 
     monkeypatch.setattr("backend.app.services.embedding.urlopen", fake_urlopen)

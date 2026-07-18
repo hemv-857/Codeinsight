@@ -1,8 +1,9 @@
 'use client';
 
 import { AlertTriangle, GitBranch, Loader2, ShieldCheck } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 
+import { useRepo } from '@/components/repo-context';
 import {
   type DebtSeverity,
   type RepositoryScanResult,
@@ -24,11 +25,17 @@ const severityClass: Record<DebtSeverity, string> = {
 };
 
 export function TechnicalDebtPanel({ scan }: TechnicalDebtPanelProps) {
+  const { pipelineResults } = useRepo();
   const [repositoryPath, setRepositoryPath] = useState('');
   const [importId, setImportId] = useState('');
   const [report, setReport] = useState<TechnicalDebtReport | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const data = pipelineResults.debt as TechnicalDebtReport | undefined;
+    if (data && !report) setReport(data);
+  }, [pipelineResults, report]);
 
   const activePath = repositoryPath.trim() || scan?.repository_path || '';
 

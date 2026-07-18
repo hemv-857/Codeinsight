@@ -1,1 +1,1 @@
-"""Forge AI backend package."""
+"""CodeInsight backend package."""

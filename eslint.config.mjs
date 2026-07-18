@@ -9,6 +9,7 @@ export default tseslint.config(
       'dist/**',
       'build/**',
       'coverage/**',
+      'data/**',
       '.venv/**',
       'venv/**',
     ],

@@ -1,4 +1,4 @@
-# Forge AI
+# CodeInsight
 
 ## Official Demo Script
 
@@ -8,7 +8,7 @@ Version: 1.0
 
 # Goal
 
-The demo must convince judges that Forge AI understands an entire software system rather than individual files.
+The demo must convince judges that CodeInsight understands an entire software system rather than individual files.
 
 Everything shown in the demo must be real.
 
@@ -59,7 +59,7 @@ Avoid extremely small demo projects.
 
 Opening (10 seconds)
 
-Open Forge AI.
+Open CodeInsight.
 
 Professional dashboard.
 
@@ -79,7 +79,7 @@ Display:
 
 Narration
 
-"Forge AI builds a complete architectural understanding of an existing software repository."
+"CodeInsight builds a complete architectural understanding of an existing software repository."
 
 ---
 
@@ -163,7 +163,7 @@ Bug Investigation (30 seconds)
 
 Paste stack trace.
 
-Forge AI should
+CodeInsight should
 
 Identify likely source.
 
@@ -255,7 +255,7 @@ AI reasoning
 
 Narration
 
-"Forge AI reduces software understanding from days to minutes by combining static analysis, graph reasoning, and GPT-5.6 into one developer workflow."
+"CodeInsight reduces software understanding from days to minutes by combining static analysis, graph reasoning, and GPT-5.6 into one developer workflow."
 
 ---
 

@@ -12,7 +12,7 @@ from pytest import MonkeyPatch
 
 
 def test_health_endpoint_returns_backend_status() -> None:
-    settings = Settings(app_name="Forge AI Test", environment="test", version="1.2.3")
+    settings = Settings(app_name="CodeInsight Test", environment="test", version="1.2.3")
     client = TestClient(create_app(settings))
 
     response = client.get("/api/health")
@@ -20,7 +20,7 @@ def test_health_endpoint_returns_backend_status() -> None:
     assert response.status_code == 200
     assert response.json() == {
         "status": "ok",
-        "service": "Forge AI Test",
+        "service": "CodeInsight Test",
         "environment": "test",
         "version": "1.2.3",
     }
@@ -52,13 +52,13 @@ def test_repository_endpoints_run_on_event_loop() -> None:
 
 
 def test_openapi_uses_configured_metadata() -> None:
-    settings = Settings(app_name="Forge AI Test", environment="test", version="1.2.3")
+    settings = Settings(app_name="CodeInsight Test", environment="test", version="1.2.3")
     client = TestClient(create_app(settings))
 
     response = client.get("/openapi.json")
 
     assert response.status_code == 200
-    assert response.json()["info"] == {"title": "Forge AI Test", "version": "1.2.3"}
+    assert response.json()["info"] == {"title": "CodeInsight Test", "version": "1.2.3"}
 
 
 def test_create_app_uses_default_settings() -> None:
@@ -67,7 +67,7 @@ def test_create_app_uses_default_settings() -> None:
     response = client.get("/api/health")
 
     assert response.status_code == 200
-    assert response.json()["service"] == "Forge AI"
+    assert response.json()["service"] == "CodeInsight"
 
 
 def test_configure_logging_applies_configured_level(monkeypatch: MonkeyPatch) -> None:

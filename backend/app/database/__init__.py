@@ -1,1 +1,1 @@
-"""Database helpers for Forge AI."""
+"""Database helpers for CodeInsight."""

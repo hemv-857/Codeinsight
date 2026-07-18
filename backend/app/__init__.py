@@ -1,1 +1,1 @@
-"""FastAPI application package for Forge AI."""
+"""FastAPI application package for CodeInsight."""

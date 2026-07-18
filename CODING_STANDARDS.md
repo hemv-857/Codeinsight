@@ -1,4 +1,4 @@
-# Forge AI Coding Standards
+# CodeInsight Coding Standards
 
 ---
 

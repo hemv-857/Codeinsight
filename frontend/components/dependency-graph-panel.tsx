@@ -38,6 +38,8 @@ export function DependencyGraphPanel({ scan }: DependencyGraphPanelProps) {
   const [showEdgeLabels, setShowEdgeLabels] = useState(true);
 
   const activePath = repositoryPath.trim() || scan?.repository_path || '';
+  const activeImportId = importId.trim();
+  const lastSource = activeImportId ? ('import' as const) : ('path' as const);
   const selectedNode = graph?.nodes.find((node) => node.path === selectedPath) ?? null;
   const internalEdges = graph?.edges.filter((edge) => edge.target !== null) ?? [];
   const { nodes, edges } = useMemo(
@@ -194,7 +196,7 @@ export function DependencyGraphPanel({ scan }: DependencyGraphPanelProps) {
             {graph ? (
               <button
                 type="button"
-                onClick={() => void loadGraph('path')}
+                onClick={() => void loadGraph(lastSource)}
                 className="rounded-md border border-border bg-muted p-2 text-muted-foreground hover:text-foreground"
                 aria-label="Refresh dependency graph"
               >

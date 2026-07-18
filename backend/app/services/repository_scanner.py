@@ -2,7 +2,29 @@ from pathlib import Path
 
 from backend.app.schemas.repository_scan import RepositoryFileEntry, RepositoryScanResult
 
-IGNORED_DIRECTORIES = frozenset({".git", "node_modules", "venv", "target", "dist"})
+IGNORED_DIRECTORIES = frozenset(
+    {
+        ".git",
+        "node_modules",
+        "venv",
+        ".venv",
+        ".venv313",
+        "target",
+        "dist",
+        "__pycache__",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        "build",
+        ".next",
+        ".nuxt",
+        "coverage",
+        ".cache",
+        "tmp",
+        "egg-info",
+        ".eggs",
+    }
+)
 
 LANGUAGE_BY_EXTENSION = {
     ".c": "C",

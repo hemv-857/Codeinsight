@@ -1,1 +1,1 @@
-"""Forge AI graph package."""
+"""CodeInsight graph package."""

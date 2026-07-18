@@ -1,4 +1,4 @@
-# Forge AI Development Roadmap
+# CodeInsight Development Roadmap
 
 ## Rules
 

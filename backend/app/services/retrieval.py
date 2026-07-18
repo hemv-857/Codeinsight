@@ -1,6 +1,7 @@
 import logging
 import math
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -94,6 +95,8 @@ class HybridRetrievalService:
         self.embedding_client = embedding_client
         self.dependency_graph = dependency_graph
         self.model = model
+        self._graph_cache: dict[str, tuple[float, dict[str, set[str]]]] = {}
+        self._graph_cache_ttl = 300.0
 
     def retrieve(
         self,
@@ -215,6 +218,13 @@ class HybridRetrievalService:
         )
 
     def _related_paths(self, repository_path: Path) -> dict[str, set[str]]:
+        cache_key = str(repository_path)
+        now = time.monotonic()
+        if cache_key in self._graph_cache:
+            cached_time, cached_data = self._graph_cache[cache_key]
+            if now - cached_time < self._graph_cache_ttl:
+                return cached_data
+
         try:
             graph = self.dependency_graph.build(repository_path)
         except (RepositoryScanError, DependencyGraphError) as error:
@@ -227,6 +237,12 @@ class HybridRetrievalService:
                 continue
             related_by_path.setdefault(edge.source, set()).add(edge.target)
             related_by_path.setdefault(edge.target, set()).add(edge.source)
+
+        self._graph_cache[cache_key] = (now, related_by_path)
+        expired = [k for k, (t, _) in self._graph_cache.items() if now - t >= self._graph_cache_ttl]
+        for k in expired:
+            del self._graph_cache[k]
+
         return related_by_path
 
     def _seed_paths(self, candidates: tuple[_Candidate, ...]) -> set[str]:

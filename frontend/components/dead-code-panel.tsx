@@ -1,8 +1,9 @@
 'use client';
 
 import { GitBranch, Loader2, SearchX, ShieldAlert } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 
+import { useRepo } from '@/components/repo-context';
 import {
   type DeadCodeFinding,
   type DeadCodeReport,
@@ -16,11 +17,17 @@ interface DeadCodePanelProps {
 }
 
 export function DeadCodePanel({ scan }: DeadCodePanelProps) {
+  const { pipelineResults } = useRepo();
   const [repositoryPath, setRepositoryPath] = useState('');
   const [importId, setImportId] = useState('');
   const [report, setReport] = useState<DeadCodeReport | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const data = pipelineResults['dead-code'] as DeadCodeReport | undefined;
+    if (data && !report) setReport(data);
+  }, [pipelineResults, report]);
 
   const activePath = repositoryPath.trim() || scan?.repository_path || '';
 

@@ -13,7 +13,7 @@ ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
     NEXT_TELEMETRY_DISABLED=1
 
-RUN npm run build --workspace @forge-ai/frontend
+RUN npm run build --workspace @codeinsight/frontend
 
 WORKDIR /app/frontend
 

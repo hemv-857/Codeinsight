@@ -4,6 +4,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from backend.app.services.architecture_explanation import ArchitectureExplanationService
+from backend.app.services.llm_provider import (
+    LLMMessage,
+    LLMProvider,
+    LLMProviderError,
+    NoOpLLMProvider,
+)
 from backend.app.services.repository_summary import (
     RepositorySummary,
     RepositorySummaryError,
@@ -71,10 +77,12 @@ class RepositoryQAService:
         summary_service: RepositorySummaryService,
         architecture_service: ArchitectureExplanationService,
         retrieval_service: HybridRetrievalService,
+        llm_provider: LLMProvider | None = None,
     ) -> None:
         self.summary_service = summary_service
         self.architecture_service = architecture_service
         self.retrieval_service = retrieval_service
+        self.llm = llm_provider or NoOpLLMProvider()
 
     def answer(
         self,
@@ -141,8 +149,36 @@ class RepositoryQAService:
         )
 
     def stream_answer(self, answer: RepositoryQAAnswer) -> Iterator[str]:
-        """Yield answer text chunks for streaming transports."""
-        for word in answer.answer.split():
+        """Yield answer text chunks, using LLM streaming when available."""
+        if self.llm.provider_name != "none":
+            system_prompt = (
+                "You are CodeInsight, a repository analysis assistant. "
+                "Answer questions based on the provided code context. "
+                "Be concise and cite specific files and symbols."
+            )
+            user_prompt = (
+                f"Repository: {answer.repository_path}\n\n"
+                f"Question: {answer.question}\n\n"
+                f"Context:\n{answer.answer}"
+            )
+            messages = [
+                LLMMessage(role="system", content=system_prompt),
+                LLMMessage(role="user", content=user_prompt),
+            ]
+            try:
+                chunks = list(self.llm.stream(messages, max_tokens=1024))
+                if chunks:
+                    yield from chunks
+                    return
+            except LLMProviderError:
+                pass
+        fallback = answer.answer.strip()
+        if not fallback:
+            fallback = (
+                "I was unable to generate an answer for this question. "
+                "Try rephrasing or ask about a specific file or symbol."
+            )
+        for word in fallback.split():
             yield f"{word} "
 
     def _retrieval_snippets(

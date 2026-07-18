@@ -1,1 +1,1 @@
-"""API route modules for Forge AI."""
+"""API route modules for CodeInsight."""

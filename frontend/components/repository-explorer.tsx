@@ -1,14 +1,10 @@
 'use client';
 
-import { ChevronRight, FileCode2, FolderTree, GitBranch, Loader2, Search } from 'lucide-react';
-import { FormEvent, useMemo, useState } from 'react';
+import { ChevronRight, FileCode2, FolderTree, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
-import {
-  type RepositoryFileEntry,
-  type RepositoryScanResult,
-  scanImportedRepository,
-  scanRepository,
-} from '@/lib/api';
+import { RepoInputBar } from '@/components/repo-input-bar';
+import { type RepositoryFileEntry, type RepositoryScanResult } from '@/lib/api';
 
 interface RepositoryExplorerProps {
   onScanLoaded: (scan: RepositoryScanResult | null) => void;
@@ -22,14 +18,10 @@ interface TreeNode {
 }
 
 export function RepositoryExplorer({ onScanLoaded }: RepositoryExplorerProps) {
-  const [repositoryPath, setRepositoryPath] = useState('');
-  const [importId, setImportId] = useState('');
   const [scan, setScan] = useState<RepositoryScanResult | null>(null);
   const [query, setQuery] = useState('');
   const [language, setLanguage] = useState('all');
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const selectedFile = scan?.files.find((file) => file.path === selectedPath) ?? null;
   const filteredFiles = useMemo(
@@ -38,97 +30,15 @@ export function RepositoryExplorer({ onScanLoaded }: RepositoryExplorerProps) {
   );
   const tree = useMemo(() => buildTree(filteredFiles), [filteredFiles]);
 
-  async function loadScan(source: 'path' | 'import') {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result =
-        source === 'path'
-          ? await scanRepository(repositoryPath.trim())
-          : await scanImportedRepository(importId.trim());
-      setScan(result);
-      setSelectedPath(result.files[0]?.path ?? null);
-      onScanLoaded(result);
-    } catch (loadError) {
-      const message = loadError instanceof Error ? loadError.message : 'Repository scan failed';
-      setError(message);
-      setScan(null);
-      setSelectedPath(null);
-      onScanLoaded(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  function submitPath(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (repositoryPath.trim()) {
-      void loadScan('path');
-    }
-  }
-
-  function submitImport(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (importId.trim()) {
-      void loadScan('import');
-    }
+  function handleScanLoaded(result: RepositoryScanResult | null) {
+    setScan(result);
+    setSelectedPath(result?.files[0]?.path ?? null);
+    onScanLoaded(result);
   }
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row">
-        <form className="flex min-w-0 flex-1 gap-2" onSubmit={submitPath}>
-          <label className="sr-only" htmlFor="repository-path">
-            Repository path
-          </label>
-          <input
-            id="repository-path"
-            value={repositoryPath}
-            onChange={(event) => setRepositoryPath(event.target.value)}
-            placeholder="/path/to/repository"
-            className="h-10 min-w-0 flex-1 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-accent"
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !repositoryPath.trim()}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <FolderTree className="h-4 w-4" />
-            )}
-            Scan
-          </button>
-        </form>
-
-        <form className="flex min-w-0 flex-1 gap-2" onSubmit={submitImport}>
-          <label className="sr-only" htmlFor="import-id">
-            Import ID
-          </label>
-          <input
-            id="import-id"
-            value={importId}
-            onChange={(event) => setImportId(event.target.value)}
-            placeholder="import id"
-            className="h-10 min-w-0 flex-1 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-accent"
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !importId.trim()}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-muted px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted/80 disabled:pointer-events-none disabled:opacity-50"
-          >
-            <GitBranch className="h-4 w-4" />
-            Load
-          </button>
-        </form>
-      </div>
-
-      {error ? (
-        <div className="rounded-md border border-red-400/30 bg-red-950/30 px-3 py-2 text-sm text-red-100">
-          {error}
-        </div>
-      ) : null}
+      <RepoInputBar onScanLoaded={handleScanLoaded} />
 
       <div className="grid min-h-[420px] gap-4 lg:grid-cols-[300px_1fr_320px]">
         <aside className="rounded-lg border border-border bg-card">

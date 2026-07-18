@@ -4,8 +4,9 @@ import '@xyflow/react/dist/style.css';
 
 import { Background, Controls, MiniMap, ReactFlow, type Edge, type Node } from '@xyflow/react';
 import { Database, GitBranch, Loader2, Network, RefreshCw, Share2 } from 'lucide-react';
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 
+import { useRepo } from '@/components/repo-context';
 import { GraphControlToggle } from '@/components/graph-control-toggle';
 import {
   type KnowledgeGraphResult,
@@ -19,6 +20,7 @@ interface KnowledgeGraphPanelProps {
 }
 
 export function KnowledgeGraphPanel({ scan }: KnowledgeGraphPanelProps) {
+  const { pipelineResults } = useRepo();
   const [repositoryPath, setRepositoryPath] = useState('');
   const [importId, setImportId] = useState('');
   const [graph, setGraph] = useState<KnowledgeGraphResult | null>(null);
@@ -28,7 +30,14 @@ export function KnowledgeGraphPanel({ scan }: KnowledgeGraphPanelProps) {
   const [showMiniMap, setShowMiniMap] = useState(true);
   const [showEdgeLabels, setShowEdgeLabels] = useState(true);
 
+  useEffect(() => {
+    const data = pipelineResults.knowledge as KnowledgeGraphResult | undefined;
+    if (data && !graph) setGraph(data);
+  }, [pipelineResults, graph]);
+
   const activePath = repositoryPath.trim() || scan?.repository_path || '';
+  const activeImportId = importId.trim();
+  const lastSource = activeImportId ? ('import' as const) : ('path' as const);
   const { nodes, edges } = useMemo(
     () => toFlowElements(graph, showEdgeLabels),
     [graph, showEdgeLabels],
@@ -174,7 +183,7 @@ export function KnowledgeGraphPanel({ scan }: KnowledgeGraphPanelProps) {
             {graph ? (
               <button
                 type="button"
-                onClick={() => void loadGraph('path')}
+                onClick={() => void loadGraph(lastSource)}
                 className="rounded-md border border-border bg-muted p-2 text-muted-foreground hover:text-foreground"
                 aria-label="Refresh knowledge graph"
               >

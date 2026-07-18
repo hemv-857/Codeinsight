@@ -1,8 +1,9 @@
 'use client';
 
 import { GitBranch, Loader2, RefreshCcw, Repeat2 } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 
+import { useRepo } from '@/components/repo-context';
 import {
   type CircularDependencyCycle,
   type CircularDependencyReport,
@@ -16,11 +17,17 @@ interface CircularDependenciesPanelProps {
 }
 
 export function CircularDependenciesPanel({ scan }: CircularDependenciesPanelProps) {
+  const { pipelineResults } = useRepo();
   const [repositoryPath, setRepositoryPath] = useState('');
   const [importId, setImportId] = useState('');
   const [report, setReport] = useState<CircularDependencyReport | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const data = pipelineResults.circular as CircularDependencyReport | undefined;
+    if (data && !report) setReport(data);
+  }, [pipelineResults, report]);
 
   const activePath = repositoryPath.trim() || scan?.repository_path || '';
 

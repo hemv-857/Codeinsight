@@ -1,4 +1,4 @@
-# Forge AI
+# CodeInsight
 
 ## Product Specification (v1.0)
 
@@ -6,7 +6,7 @@
 
 # Vision
 
-Forge AI is an AI-powered software intelligence platform that understands an entire software repository instead of isolated files.
+CodeInsight is an AI-powered software intelligence platform that understands an entire software repository instead of isolated files.
 
 It helps developers explore unfamiliar codebases, understand architecture, predict change impact, detect technical debt, generate documentation, and accelerate development.
 
@@ -53,13 +53,13 @@ Secondary
 
 Traditional AI coding assistants understand the current context.
 
-Forge AI understands the entire system.
+CodeInsight understands the entire system.
 
 Instead of answering:
 
 "What does this function do?"
 
-Forge AI answers:
+CodeInsight answers:
 
 "How does authentication work across the entire application?"
 

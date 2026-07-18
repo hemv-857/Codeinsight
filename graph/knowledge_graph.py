@@ -12,7 +12,7 @@ from parser.tree_sitter_parser import (
 from graph.call_graph import CallGraphEdge, CallGraphError, CallGraphService
 from graph.dependency_graph import DependencyEdge, DependencyGraphError, DependencyGraphService
 
-GraphProperty = str | int | bool
+GraphProperty = str | int | float | bool
 logger = logging.getLogger(__name__)
 
 

@@ -1,1 +1,1 @@
-"""Forge AI test package."""
+"""CodeInsight test package."""

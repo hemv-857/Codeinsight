@@ -9,6 +9,7 @@ dist/
 build/
 coverage/
 data/
+out/
 
 .venv*/
 venv/
@@ -17,7 +18,15 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 *.py[cod]
+*.pyo
 *.tsbuildinfo
+
+*.log
+*.sqlite3
+*.db
 
 .idea/
 .vscode/
+*.swp
+*.swo
+*~

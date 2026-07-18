@@ -1,7 +1,7 @@
 # Architecture Diagrams
 
 These Mermaid diagrams summarize the production release architecture and demo
-workflow for Forge AI.
+workflow for CodeInsight.
 
 ## Runtime Architecture
 
@@ -45,7 +45,7 @@ flowchart TB
 ```mermaid
 sequenceDiagram
   participant Dev as Developer
-  participant UI as Forge AI Dashboard
+  participant UI as CodeInsight Dashboard
   participant API as FastAPI API
   participant Graph as Graph Services
   participant AI as Repository Intelligence

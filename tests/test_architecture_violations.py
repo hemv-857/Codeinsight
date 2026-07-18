@@ -43,7 +43,7 @@ def create_git_repository(path: Path) -> None:
         text=True,
     )
     subprocess.run(
-        ["git", "config", "user.name", "Forge AI"],
+        ["git", "config", "user.name", "CodeInsight"],
         cwd=path,
         check=True,
         capture_output=True,

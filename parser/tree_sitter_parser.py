@@ -567,6 +567,9 @@ class SafeSourceParserService(TreeSitterParserService):
         symbols: list[SourceSymbol] = []
         parent_stack: list[tuple[int, str]] = []
         for line_number, line in enumerate(source.splitlines(), start=1):
+            stripped = line.strip()
+            if stripped.startswith("#") or stripped.startswith("//"):
+                continue
             indent = len(line) - len(line.lstrip(" "))
             parent_stack = [(level, name) for level, name in parent_stack if level < indent]
             parent = parent_stack[-1][1] if parent_stack else None
@@ -618,8 +621,9 @@ class SafeSourceParserService(TreeSitterParserService):
         python_import = re.match(r"^\s*(?:from\s+([\w.]+)\s+)?import\s+([\w*.,\s]+)", line)
         if python_import is not None:
             source = python_import.group(1)
-            name = python_import.group(2).split(",")[0].strip()
-            return self._safe_symbol("import", name, line, line_number, source=source)
+            raw_names = python_import.group(2)
+            first_name = raw_names.split(",")[0].strip().split(" as ")[0].strip()
+            return self._safe_symbol("import", first_name, line, line_number, source=source)
 
         js_import = re.match(r"^\s*import\s+(.+?)\s+from\s+[\"']([^\"']+)[\"']", line)
         if js_import is not None:
@@ -630,19 +634,43 @@ class SafeSourceParserService(TreeSitterParserService):
 
     def _safe_calls(self, source: str) -> list[SourceCall]:
         calls: list[SourceCall] = []
+        scope_stack: list[tuple[int, str]] = []
         for line_number, line in enumerate(source.splitlines(), start=1):
+            stripped = line.strip()
+            if stripped.startswith("#") or stripped.startswith("//"):
+                continue
+            indent = len(line) - len(line.lstrip(" "))
+            scope_stack = [(level, name) for level, name in scope_stack if level < indent]
+            current_scope = scope_stack[-1][1] if scope_stack else None
+
+            is_func_decl = bool(
+                re.match(
+                    r"^\s*(?:export\s+)?(?:async\s+)?(?:def|function)\s+",
+                    line,
+                )
+            )
+            if is_func_decl:
+                func_match = re.match(
+                    r"^\s*(?:export\s+)?(?:async\s+)?(?:def|function)\s+([A-Za-z_][A-Za-z0-9_]*)",
+                    line,
+                )
+                if func_match is not None:
+                    scope_stack.append((indent, func_match.group(1)))
+                continue
+
             for match in re.finditer(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(", line):
                 callee = match.group(1)
-                if callee in {"class", "def", "function", "if", "for", "while"}:
+                if callee in {"class", "def", "function", "if", "for", "while", "import", "from"}:
                     continue
                 calls.append(
                     SourceCall(
-                        caller=None,
+                        caller=current_scope,
                         callee=callee,
                         line=line_number,
                         column=match.start(1),
                         end_line=line_number,
                         end_column=match.end(1),
+                        recursive=current_scope is not None and current_scope == callee,
                     )
                 )
         return calls

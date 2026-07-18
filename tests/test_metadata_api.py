@@ -22,7 +22,7 @@ def create_git_repository(path: Path) -> None:
         text=True,
     )
     subprocess.run(
-        ["git", "config", "user.name", "Forge AI"],
+        ["git", "config", "user.name", "CodeInsight"],
         cwd=path,
         check=True,
         capture_output=True,
@@ -88,7 +88,7 @@ def test_metadata_api_persists_imported_repository(tmp_path: Path) -> None:
     assert import_response.status_code == 201
     import_id = import_response.json()["import_id"]
 
-    metadata_response = client.get(f"/api/repositories/imports/{import_id}/metadata")
+    metadata_response = client.post(f"/api/repositories/imports/{import_id}/metadata")
 
     assert metadata_response.status_code == 200
     assert metadata_response.json()["files"][0]["path"] == "src/main.py"

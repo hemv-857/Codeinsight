@@ -32,8 +32,10 @@ from backend.app.services.embedding import (
     OllamaEmbeddingClient,
     OpenAIEmbeddingClient,
 )
+from backend.app.services.llm_provider import LLMProvider, create_llm_provider
 from backend.app.services.mermaid_diagrams import MermaidDiagramService
 from backend.app.services.metadata import MetadataService
+from backend.app.services.open_source_contributor import OpenSourceContributionService
 from backend.app.services.pull_request_review import PullRequestReviewService
 from backend.app.services.readme_generator import ReadmeGeneratorService
 from backend.app.services.repository_chunker import RepositoryChunkerService
@@ -45,8 +47,33 @@ from backend.app.services.retrieval import HybridRetrievalService
 from backend.app.services.risk_scoring import RiskScoringService
 from backend.app.services.security_review import SecurityReviewService
 from backend.app.services.stack_trace import StackTraceParserService
+from backend.app.services.system_understanding import SystemUnderstandingService
 from backend.app.services.technical_debt import TechnicalDebtService
 from backend.app.services.vector_store import VectorStoreService
+
+
+@lru_cache(maxsize=1)
+def get_llm_provider(
+    provider_type: str = "ollama",
+    ollama_base_url: str = "http://localhost:11434",
+    groq_api_key: str = "",
+) -> LLMProvider:
+    """Provide LLM provider based on configuration."""
+    return create_llm_provider(
+        provider_type=provider_type,
+        ollama_base_url=ollama_base_url,
+        groq_api_key=groq_api_key or None,
+    )
+
+
+def _resolve_llm_provider(settings: Settings) -> LLMProvider:
+    """Build LLM provider from settings (not cached)."""
+    groq_key = settings.groq_api_key.get_secret_value().strip() if settings.groq_api_key else ""
+    return get_llm_provider(
+        provider_type=settings.llm_provider,
+        ollama_base_url=settings.ollama_base_url,
+        groq_api_key=groq_key,
+    )
 
 
 def get_settings() -> Settings:
@@ -324,12 +351,14 @@ def get_repository_qa_service(
         ArchitectureExplanationService, Depends(get_architecture_explanation_service)
     ],
     retrieval_service: Annotated[HybridRetrievalService, Depends(get_hybrid_retrieval_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> RepositoryQAService:
     """Provide repository Q&A operations."""
     return RepositoryQAService(
         summary_service=summary_service,
         architecture_service=architecture_service,
         retrieval_service=retrieval_service,
+        llm_provider=_resolve_llm_provider(settings),
     )
 
 
@@ -366,6 +395,21 @@ def get_developer_onboarding_service(
     )
 
 
+def get_system_understanding_service(
+    summary_service: Annotated[RepositorySummaryService, Depends(get_repository_summary_service)],
+    architecture_service: Annotated[
+        ArchitectureExplanationService, Depends(get_architecture_explanation_service)
+    ],
+    mermaid_service: Annotated[MermaidDiagramService, Depends(get_mermaid_diagram_service)],
+) -> SystemUnderstandingService:
+    """Provide one-click system understanding report generation."""
+    return SystemUnderstandingService(
+        summary_service=summary_service,
+        architecture_service=architecture_service,
+        mermaid_service=mermaid_service,
+    )
+
+
 def get_pull_request_review_service(
     scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
     dependency_graph: Annotated[DependencyGraphService, Depends(get_dependency_graph_service)],
@@ -388,6 +432,13 @@ def get_security_review_service(
 ) -> SecurityReviewService:
     """Provide security review operations."""
     return SecurityReviewService(scanner=scanner)
+
+
+def get_open_source_contribution_service(
+    scanner: Annotated[RepositoryScannerService, Depends(get_repository_scanner_service)],
+) -> OpenSourceContributionService:
+    """Provide open source contribution analysis operations."""
+    return OpenSourceContributionService(scanner=scanner)
 
 
 @lru_cache(maxsize=16)

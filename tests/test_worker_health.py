@@ -7,7 +7,7 @@ from workers.main import WorkerHealthHandler, get_health_payload, get_port
 
 
 def test_worker_port_uses_environment(monkeypatch: MonkeyPatch) -> None:
-    monkeypatch.setenv("FORGE_AI_WORKER_PORT", "9101")
+    monkeypatch.setenv("CODEINSIGHT_WORKER_PORT", "9101")
 
     assert get_port() == 9101
 
@@ -15,7 +15,7 @@ def test_worker_port_uses_environment(monkeypatch: MonkeyPatch) -> None:
 def test_worker_health_payload() -> None:
     payload = json.loads(get_health_payload())
 
-    assert payload == {"status": "ok", "service": "Forge AI Worker"}
+    assert payload == {"status": "ok", "service": "CodeInsight Worker"}
 
 
 def test_worker_health_handler_serves_health_and_404() -> None:
@@ -28,7 +28,7 @@ def test_worker_health_handler_serves_health_and_404() -> None:
     assert health_handler.status_code == 200
     assert json.loads(cast(BytesIO, health_handler.wfile).getvalue().decode()) == {
         "status": "ok",
-        "service": "Forge AI Worker",
+        "service": "CodeInsight Worker",
     }
     assert missing_handler.status_code == 404
 

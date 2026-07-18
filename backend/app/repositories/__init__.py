@@ -1,1 +1,1 @@
-"""Persistence repositories for Forge AI."""
+"""Persistence repositories for CodeInsight."""

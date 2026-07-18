@@ -1,44 +1,44 @@
 # Backend
 
-FastAPI application code for Forge AI.
+FastAPI application code for CodeInsight.
 
 ## Local Commands
 
 - Run tests: `make test`
 - Run verification: `make verify`
-- Start the API locally: `FORGE_AI_PARSER_PROVIDER=safe .venv313/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8002`
+- Start the API locally: `CODEINSIGHT_PARSER_PROVIDER=safe .venv313/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8002`
 
 Use Python 3.13 for local backend demos on macOS. Python 3.14.6 can segfault in
-worker threads while scanning repositories. `FORGE_AI_PARSER_PROVIDER=safe`
+worker threads while scanning repositories. `CODEINSIGHT_PARSER_PROVIDER=safe`
 keeps the demo API stable if native Tree-sitter bindings crash during parsing.
 
 ## Environment
 
-Configuration is loaded from environment variables prefixed with `FORGE_AI_`.
+Configuration is loaded from environment variables prefixed with `CODEINSIGHT_`.
 
-- `FORGE_AI_APP_NAME`
-- `FORGE_AI_CONVERSATION_DATABASE_PATH`
-- `FORGE_AI_ENVIRONMENT`
-- `FORGE_AI_GRAPH_DATABASE_PATH`
-- `FORGE_AI_LOG_LEVEL`
-- `FORGE_AI_METADATA_DATABASE_PATH`
-- `FORGE_AI_NEO4J_DATABASE`
-- `FORGE_AI_NEO4J_PASSWORD`
-- `FORGE_AI_NEO4J_URI`
-- `FORGE_AI_NEO4J_USERNAME`
-- `FORGE_AI_OPENAI_API_KEY`
-- `FORGE_AI_PARSER_PROVIDER`
-- `FORGE_AI_EMBEDDING_BATCH_SIZE`
-- `FORGE_AI_EMBEDDING_MODEL`
-- `FORGE_AI_EMBEDDING_PROVIDER`
-- `FORGE_AI_OLLAMA_BASE_URL`
-- `FORGE_AI_OLLAMA_EMBEDDING_MODEL`
-- `FORGE_AI_REPOSITORY_CHUNK_MAX_CHARS`
-- `FORGE_AI_REPOSITORY_CLONE_TIMEOUT_SECONDS`
-- `FORGE_AI_REPOSITORY_STORAGE_PATH`
-- `FORGE_AI_REPOSITORY_ZIP_MAX_BYTES`
-- `FORGE_AI_VECTOR_DATABASE_PATH`
-- `FORGE_AI_VERSION`
+- `CODEINSIGHT_APP_NAME`
+- `CODEINSIGHT_CONVERSATION_DATABASE_PATH`
+- `CODEINSIGHT_ENVIRONMENT`
+- `CODEINSIGHT_GRAPH_DATABASE_PATH`
+- `CODEINSIGHT_LOG_LEVEL`
+- `CODEINSIGHT_METADATA_DATABASE_PATH`
+- `CODEINSIGHT_NEO4J_DATABASE`
+- `CODEINSIGHT_NEO4J_PASSWORD`
+- `CODEINSIGHT_NEO4J_URI`
+- `CODEINSIGHT_NEO4J_USERNAME`
+- `CODEINSIGHT_OPENAI_API_KEY`
+- `CODEINSIGHT_PARSER_PROVIDER`
+- `CODEINSIGHT_EMBEDDING_BATCH_SIZE`
+- `CODEINSIGHT_EMBEDDING_MODEL`
+- `CODEINSIGHT_EMBEDDING_PROVIDER`
+- `CODEINSIGHT_OLLAMA_BASE_URL`
+- `CODEINSIGHT_OLLAMA_EMBEDDING_MODEL`
+- `CODEINSIGHT_REPOSITORY_CHUNK_MAX_CHARS`
+- `CODEINSIGHT_REPOSITORY_CLONE_TIMEOUT_SECONDS`
+- `CODEINSIGHT_REPOSITORY_STORAGE_PATH`
+- `CODEINSIGHT_REPOSITORY_ZIP_MAX_BYTES`
+- `CODEINSIGHT_VECTOR_DATABASE_PATH`
+- `CODEINSIGHT_VERSION`
 
 The health endpoint is available at `/api/health`.
 
@@ -136,9 +136,9 @@ snapshot for read-back and recovery.
 Repository chunk endpoints generate deterministic file and symbol chunks for the
 embedding pipeline without generating embeddings.
 Embedding endpoints generate OpenAI embeddings for repository chunks. They require
-`FORGE_AI_OPENAI_API_KEY` and default to `text-embedding-3-small`.
-For demos without an OpenAI key, set `FORGE_AI_EMBEDDING_PROVIDER=ollama`, run
-Ollama locally, and use `FORGE_AI_OLLAMA_EMBEDDING_MODEL=nomic-embed-text`.
+`CODEINSIGHT_OPENAI_API_KEY` and default to `text-embedding-3-small`.
+For demos without an OpenAI key, set `CODEINSIGHT_EMBEDDING_PROVIDER=ollama`, run
+Ollama locally, and use `CODEINSIGHT_OLLAMA_EMBEDDING_MODEL=nomic-embed-text`.
 Vector storage endpoints persist generated embeddings to SQLite and return compact
 storage statistics instead of full vector payloads.
 Hybrid retrieval endpoints search stored vectors with semantic similarity, keyword
@@ -169,7 +169,7 @@ Repository summary endpoints generate grounded repository overviews from scanner
 parser, dependency graph, call graph, and vector index metadata.
 README generation endpoints turn the repository summary into Markdown sections
 for overview, stats, languages, key files, notable symbols, architecture
-signals, setup entry points, and Forge AI evidence.
+signals, setup entry points, and CodeInsight evidence.
 Architecture explanation endpoints turn those grounded facts into component,
 dependency-flow, call-flow, observation, evidence, and confidence sections.
 Architecture documentation endpoints export those grounded architecture facts as

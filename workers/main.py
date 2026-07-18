@@ -12,13 +12,13 @@ logger = logging.getLogger(__name__)
 
 def get_health_payload() -> bytes:
     """Return the worker health response body."""
-    return json.dumps({"status": "ok", "service": "Forge AI Worker"}).encode()
+    return json.dumps({"status": "ok", "service": "CodeInsight Worker"}).encode()
 
 
 class WorkerHealthHandler(BaseHTTPRequestHandler):
     """HTTP handler exposing worker liveness for Docker health checks."""
 
-    server_version = "ForgeAIWorker/0.1.0"
+    server_version = "CodeInsightWorker/0.1.0"
 
     def do_GET(self) -> None:
         if self.path != "/health":
@@ -38,7 +38,7 @@ class WorkerHealthHandler(BaseHTTPRequestHandler):
 
 def get_port() -> int:
     """Return the configured worker health port."""
-    raw_port = os.getenv("FORGE_AI_WORKER_PORT", str(DEFAULT_PORT))
+    raw_port = os.getenv("CODEINSIGHT_WORKER_PORT", str(DEFAULT_PORT))
     return int(raw_port)
 
 
@@ -46,10 +46,10 @@ def run() -> None:
     """Start the worker health server."""
     logging.basicConfig(
         format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-        level=os.getenv("FORGE_AI_LOG_LEVEL", "INFO"),
+        level=os.getenv("CODEINSIGHT_LOG_LEVEL", "INFO"),
     )
     port = get_port()
-    logger.info("Forge AI worker started", extra={"port": port})
+    logger.info("CodeInsight worker started", extra={"port": port})
 
     with ThreadingHTTPServer((HOST, port), WorkerHealthHandler) as server:
         server.serve_forever()

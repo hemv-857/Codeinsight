@@ -53,6 +53,32 @@ class OllamaEmbeddingClient:
         self.base_url = base_url.rstrip("/")
 
     def create_embeddings(self, *, model: str, inputs: list[str]) -> list[list[float]]:
+        if not inputs:
+            return []
+        payload = json.dumps({"model": model, "input": inputs}).encode()
+        request = Request(
+            f"{self.base_url}/api/embed",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=120) as response:
+                body = json.loads(response.read().decode())
+        except (HTTPError, URLError, TimeoutError) as error:
+            logger.exception("Ollama embedding request failed.")
+            raise EmbeddingError(str(error)) from error
+        embeddings = body.get("embeddings")
+        if not isinstance(embeddings, list) or len(embeddings) != len(inputs):
+            try:
+                return self._fallback_single(model, inputs)
+            except Exception as err:
+                raise EmbeddingError(
+                    "Ollama embedding response did not include expected vectors."
+                ) from err
+        return [[float(value) for value in vec] for vec in embeddings]
+
+    def _fallback_single(self, model: str, inputs: list[str]) -> list[list[float]]:
         vectors: list[list[float]] = []
         for text in inputs:
             payload = json.dumps({"model": model, "prompt": text}).encode()
@@ -62,12 +88,8 @@ class OllamaEmbeddingClient:
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            try:
-                with urlopen(request, timeout=60) as response:
-                    body = json.loads(response.read().decode())
-            except (HTTPError, URLError, TimeoutError) as error:
-                logger.exception("Ollama embedding request failed.")
-                raise EmbeddingError(str(error)) from error
+            with urlopen(request, timeout=60) as response:
+                body = json.loads(response.read().decode())
             embedding = body.get("embedding")
             if not isinstance(embedding, list):
                 raise EmbeddingError("Ollama embedding response did not include a vector.")
@@ -132,7 +154,10 @@ class EmbeddingService:
 
     def embed_repository(self, repository_path: Path) -> RepositoryEmbeddings:
         if self.client is None:
-            raise EmbeddingError("OpenAI API key is not configured.")
+            raise EmbeddingError(
+                "Embedding client is not configured. Set CODEINSIGHT_OPENAI_API_KEY for OpenAI "
+                "or CODEINSIGHT_EMBEDDING_PROVIDER=ollama for local embeddings."
+            )
 
         chunks = self.chunker.chunk_repository(repository_path)
         embeddable_chunks = [chunk for chunk in chunks.chunks if chunk.content.strip()]

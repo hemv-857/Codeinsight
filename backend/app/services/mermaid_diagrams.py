@@ -114,7 +114,7 @@ class MermaidDiagramService:
         return MermaidDiagram(
             kind="architecture",
             title="Architecture Overview",
-            description="Repository architecture evidence paths surfaced by Forge AI.",
+            description="Repository architecture evidence paths surfaced by CodeInsight.",
             code="\n".join(lines),
         )
 

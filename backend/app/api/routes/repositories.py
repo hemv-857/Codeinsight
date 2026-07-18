@@ -36,6 +36,7 @@ from backend.app.core.dependencies import (
     get_knowledge_graph_service,
     get_mermaid_diagram_service,
     get_metadata_service,
+    get_open_source_contribution_service,
     get_pull_request_review_service,
     get_readme_generator_service,
     get_repository_chunker_service,
@@ -45,6 +46,7 @@ from backend.app.core.dependencies import (
     get_repository_summary_service,
     get_security_review_service,
     get_stack_trace_parser_service,
+    get_system_understanding_service,
     get_technical_debt_service,
     get_tree_sitter_parser_service,
     get_vector_store_service,
@@ -143,6 +145,12 @@ from backend.app.schemas.mermaid_diagrams import (
     MermaidDiagramStatsResponse,
 )
 from backend.app.schemas.metadata import MetadataPersistRequest, StoredRepositoryMetadata
+from backend.app.schemas.open_source_contributor import (
+    ContributionFindingResponse,
+    ContributionStatsResponse,
+    OpenSourceContributionRequest,
+    OpenSourceContributionResponse,
+)
 from backend.app.schemas.parse import (
     ParseFileRequest,
     ParseRepositoryResponse,
@@ -209,6 +217,14 @@ from backend.app.schemas.stack_trace import (
     StackTraceParseResponse,
     StackTraceStatsResponse,
 )
+from backend.app.schemas.system_understanding import (
+    SystemUnderstandingRequest,
+    SystemUnderstandingResponse,
+    SystemUnderstandingStatsResponse,
+    UnderstandingComponentResponse,
+    UnderstandingFileResponse,
+    UnderstandingSymbolResponse,
+)
 from backend.app.schemas.technical_debt import (
     TechnicalDebtFindingResponse,
     TechnicalDebtRequest,
@@ -263,6 +279,11 @@ from backend.app.services.mermaid_diagrams import (
     MermaidDiagramSet,
 )
 from backend.app.services.metadata import MetadataService
+from backend.app.services.open_source_contributor import (
+    OpenSourceContributionError,
+    OpenSourceContributionReport,
+    OpenSourceContributionService,
+)
 from backend.app.services.pull_request_review import (
     PullRequestReview,
     PullRequestReviewError,
@@ -300,6 +321,11 @@ from backend.app.services.stack_trace import (
     StackTrace,
     StackTraceParseError,
     StackTraceParserService,
+)
+from backend.app.services.system_understanding import (
+    SystemUnderstandingError,
+    SystemUnderstandingReport,
+    SystemUnderstandingService,
 )
 from backend.app.services.technical_debt import (
     TechnicalDebtError,
@@ -379,6 +405,82 @@ def to_mermaid_diagram_response(result: MermaidDiagramSet) -> MermaidDiagramSetR
             dependency_edge_count=result.stats.dependency_edge_count,
             call_edge_count=result.stats.call_edge_count,
             component_count=result.stats.component_count,
+        ),
+    )
+
+
+def to_system_understanding_response(
+    result: SystemUnderstandingReport,
+) -> SystemUnderstandingResponse:
+    """Convert system understanding output into an API response."""
+    return SystemUnderstandingResponse(
+        repository_path=result.repository_path,
+        title=result.title,
+        application_overview=result.application_overview,
+        architecture_summary=result.architecture_summary,
+        main_components=[
+            UnderstandingComponentResponse(
+                name=component.name,
+                path=component.path,
+                role=component.role,
+                evidence=list(component.evidence),
+            )
+            for component in result.main_components
+        ],
+        critical_execution_flows=list(result.critical_execution_flows),
+        important_services=[
+            UnderstandingSymbolResponse(
+                name=symbol.name,
+                kind=symbol.kind,
+                path=symbol.path,
+                line=symbol.line,
+                reason=symbol.reason,
+            )
+            for symbol in result.important_services
+        ],
+        database_interactions=list(result.database_interactions),
+        external_dependencies=list(result.external_dependencies),
+        high_risk_modules=[
+            UnderstandingFileResponse(
+                path=file.path,
+                language=file.language,
+                reason=file.reason,
+                score=file.score,
+            )
+            for file in result.high_risk_modules
+        ],
+        suggested_learning_path=list(result.suggested_learning_path),
+        architecture_diagram=result.architecture_diagram,
+        dependency_visualization=result.dependency_visualization,
+        important_files=[
+            UnderstandingFileResponse(
+                path=file.path,
+                language=file.language,
+                reason=file.reason,
+                score=file.score,
+            )
+            for file in result.important_files
+        ],
+        related_symbols=[
+            UnderstandingSymbolResponse(
+                name=symbol.name,
+                kind=symbol.kind,
+                path=symbol.path,
+                line=symbol.line,
+                reason=symbol.reason,
+            )
+            for symbol in result.related_symbols
+        ],
+        evidence_paths=list(result.evidence_paths),
+        markdown=result.markdown,
+        stats=SystemUnderstandingStatsResponse(
+            file_count=result.stats.file_count,
+            parsed_file_count=result.stats.parsed_file_count,
+            symbol_count=result.stats.symbol_count,
+            dependency_count=result.stats.dependency_count,
+            call_count=result.stats.call_count,
+            diagram_count=result.stats.diagram_count,
+            confidence=result.stats.confidence,
         ),
     )
 
@@ -1075,6 +1177,46 @@ def to_dependency_graph_response(graph: DependencyGraph) -> DependencyGraphRespo
     )
 
 
+def to_open_source_contribution_response(
+    result: OpenSourceContributionReport,
+) -> OpenSourceContributionResponse:
+    """Convert open source contribution analysis output into an API response."""
+    return OpenSourceContributionResponse(
+        repository_path=result.repository_path,
+        focus=result.focus,
+        findings=[
+            ContributionFindingResponse(
+                category=finding.category,
+                severity=finding.severity,
+                path=finding.path,
+                line=finding.line,
+                title=finding.title,
+                description=finding.description,
+                evidence=list(finding.evidence),
+                suggested_fix=finding.suggested_fix,
+                impact=finding.impact,
+                effort=finding.effort,
+            )
+            for finding in result.findings
+        ],
+        recommendations=list(result.recommendations),
+        summary=result.summary,
+        stats=ContributionStatsResponse(
+            file_count=result.stats.file_count,
+            scanned_file_count=result.stats.scanned_file_count,
+            finding_count=result.stats.finding_count,
+            bug_count=result.stats.bug_count,
+            security_count=result.stats.security_count,
+            code_smell_count=result.stats.code_smell_count,
+            missing_test_count=result.stats.missing_test_count,
+            missing_docs_count=result.stats.missing_docs_count,
+            performance_count=result.stats.performance_count,
+            contribution_score=result.stats.contribution_score,
+            confidence=result.stats.confidence,
+        ),
+    )
+
+
 def to_parse_response(result: ParseTreeSummary) -> ParseTreeResponse:
     """Convert parser-domain output into an API response."""
     return ParseTreeResponse(
@@ -1221,7 +1363,7 @@ async def get_repository_metadata(
         ) from error
 
 
-@router.get("/imports/{import_id}/metadata", response_model=StoredRepositoryMetadata)
+@router.post("/imports/{import_id}/metadata", response_model=StoredRepositoryMetadata)
 async def persist_imported_repository_metadata(
     import_id: str,
     import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
@@ -1794,6 +1936,41 @@ async def generate_repository_mermaid_diagrams(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 
+@router.post("/system-understanding", response_model=SystemUnderstandingResponse)
+async def generate_repository_system_understanding(
+    request: SystemUnderstandingRequest,
+    service: Annotated[SystemUnderstandingService, Depends(get_system_understanding_service)],
+) -> SystemUnderstandingResponse:
+    """Generate a one-click repository understanding report."""
+    try:
+        return to_system_understanding_response(service.generate(request.repository_path))
+    except SystemUnderstandingError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get(
+    "/imports/{import_id}/system-understanding",
+    response_model=SystemUnderstandingResponse,
+)
+async def generate_imported_repository_system_understanding(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[SystemUnderstandingService, Depends(get_system_understanding_service)],
+) -> SystemUnderstandingResponse:
+    """Generate a one-click understanding report for a previously imported repository."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise SystemUnderstandingError("Repository import has no local path to report.")
+        return to_system_understanding_response(
+            service.generate(Path(imported_repository.repository_path))
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except SystemUnderstandingError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
 @router.post(
     "/imports/{import_id}/mermaid-diagrams",
     response_model=MermaidDiagramSetResponse,
@@ -2225,4 +2402,54 @@ async def build_imported_repository_dependency_graph(
     except RepositoryImportError as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
     except (RepositoryScanError, DependencyGraphError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.post(
+    "/open-source-contribution",
+    response_model=OpenSourceContributionResponse,
+)
+async def analyze_open_source_contribution(
+    request: OpenSourceContributionRequest,
+    service: Annotated[
+        OpenSourceContributionService, Depends(get_open_source_contribution_service)
+    ],
+) -> OpenSourceContributionResponse:
+    """Analyze a repository for open source contribution opportunities."""
+    try:
+        if request.github_url:
+            return to_open_source_contribution_response(
+                service.analyze_github_url(request.github_url, focus=request.focus)
+            )
+        if request.repository_path is None:
+            raise OpenSourceContributionError("Provide repository_path or github_url.")
+        return to_open_source_contribution_response(
+            service.analyze(request.repository_path, focus=request.focus)
+        )
+    except OpenSourceContributionError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+
+@router.get(
+    "/imports/{import_id}/open-source-contribution",
+    response_model=OpenSourceContributionResponse,
+)
+async def analyze_imported_open_source_contribution(
+    import_id: str,
+    import_service: Annotated[RepositoryImportService, Depends(get_repository_import_service)],
+    service: Annotated[
+        OpenSourceContributionService, Depends(get_open_source_contribution_service)
+    ],
+) -> OpenSourceContributionResponse:
+    """Analyze a previously imported repository for contribution opportunities."""
+    try:
+        imported_repository = import_service.get_progress(import_id)
+        if imported_repository.repository_path is None:
+            raise OpenSourceContributionError("Repository import has no local path.")
+        return to_open_source_contribution_response(
+            service.analyze(Path(imported_repository.repository_path))
+        )
+    except RepositoryImportError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except OpenSourceContributionError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
