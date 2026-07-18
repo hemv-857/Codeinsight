@@ -195,8 +195,8 @@ are stable on your machine.
 | **Track**            | Work and Productivity                           |
 | **Project**          | CodeInsight — Google Maps for Software Systems  |
 | **Codex Session ID** | `019f69f5-05dd-7bc2-9303-f1ba8c7486cf`          |
-| **Demo Video**       | [YouTube](https://youtu.be/dQw4w9WgXcQ)         |
-| **Repository**       | [GitHub](https://github.com/hemang/codeinsight) |
+| **Demo Video**       | [YouTube]()         |
+| **Repository**       | [GitHub](https://github.com/hemv-857/Codeinsight) |
 
 ### What We Built
 
