@@ -192,7 +192,7 @@ are stable on your machine.
 
 | Field                | Value                                           |
 | -------------------- | ----------------------------------------------- |
-| **Track**            | Work and Productivity                           |
+| **Track**            | Developer Tools                                 |
 | **Project**          | CodeInsight — Google Maps for Software Systems  |
 | **Codex Session ID** | `019f69f5-05dd-7bc2-9303-f1ba8c7486cf`          |
 | **Demo Video**       | [YouTube]()         |
