@@ -7,6 +7,8 @@ intelligence app that imports repositories, parses source code, builds graph
 views, answers repository questions, predicts bug impact, reviews changes, and
 generates documentation from real repository evidence.
 
+**Live Demo:** [codeinsight-iota.vercel.app](https://codeinsight-iota.vercel.app/)
+
 ## Built with Codex
 
 **Codex Session ID:** `019f69f5-05dd-7bc2-9303-f1ba8c7486cf`
@@ -146,6 +148,8 @@ Then run Ollama locally before vector indexing.
 
 ## Demo
 
+**Live App:** [codeinsight-iota.vercel.app](https://codeinsight-iota.vercel.app/)
+
 Use the official flow in [DEMO.md](DEMO.md). The recommended real demo
 repository is FastAPI because it is large enough to exercise parsing, graphs,
 search, documentation, Q&A, debt, and bug analysis without being too large for
@@ -194,8 +198,9 @@ are stable on your machine.
 | -------------------- | ----------------------------------------------- |
 | **Track**            | Developer Tools                                 |
 | **Project**          | CodeInsight — Google Maps for Software Systems  |
+| **Live Demo**        | [codeinsight-iota.vercel.app](https://codeinsight-iota.vercel.app/) |
 | **Codex Session ID** | `019f69f5-05dd-7bc2-9303-f1ba8c7486cf`          |
-| **Demo Video**       | [YouTube]()         |
+| **Demo Video**       | [YouTube](https://www.youtube.com/watch?v=nFeFmnWsQbw)         |
 | **Repository**       | [GitHub](https://github.com/hemv-857/Codeinsight) |
 
 ### What We Built
