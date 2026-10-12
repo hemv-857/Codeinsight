@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      # Tool versions come from requirements-dev.txt (ruff==0.12.4, mypy==1.17.0,
+      # pytest==8.4.1) rather than being installed bare, so a release cannot
+      # silently change which rules fire.
+      - name: Lint
+        run: ruff check .
+      - name: Typecheck
+        run: mypy backend workers graph parser tests
+      # This is the repo's own gate (`make test`): runs pytest and enforces the
+      # 90% first-party coverage floor over backend/graph/parser/workers.
+      - name: Tests + coverage gate
+        run: python scripts/check_python_coverage.py --min 90
