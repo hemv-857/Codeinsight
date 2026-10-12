@@ -1,4 +1,5 @@
 import json
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -6,9 +7,22 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def compose_argv() -> list[str]:
+    """Prefer the standalone binary, fall back to the v2 `docker compose` plugin.
+
+    Hosted runners (GitHub Actions) no longer ship the `docker-compose` shim -
+    only `docker compose` - so a hard-coded v1 call fails there with
+    FileNotFoundError. Both are the same Compose codebase, so the fallback is
+    behaviourally identical.
+    """
+    if shutil.which("docker-compose"):
+        return ["docker-compose"]
+    return ["docker", "compose"]
+
+
 def load_compose_config() -> dict[str, Any]:
     result = subprocess.run(
-        ["docker-compose", "config", "--format", "json"],
+        [*compose_argv(), "config", "--format", "json"],
         cwd=ROOT,
         check=True,
         capture_output=True,
