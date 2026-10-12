@@ -1,5 +1,7 @@
 # CodeInsight
 
+<a href="https://github.com/hemv-857/Codeinsight/actions/workflows/ci.yml"><img src="https://github.com/hemv-857/Codeinsight/actions/workflows/ci.yml/badge.svg" alt="Codeinsight CI"></a> <a href="https://github.com/hemv-857/Codeinsight/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a> <img src="https://img.shields.io/badge/Python-3776AB.svg" alt="Python">
+
 > **OpenAI Hackathon Submission — Developer Tools Track**
 
 CodeInsight is "Google Maps for Software Systems": a dark-first codebase
