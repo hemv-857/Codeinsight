@@ -17,9 +17,9 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^9.31.0",
-    "prettier": "^3.9.9",
+    "prettier": "^3.9.10",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.71.1"
+    "typescript-eslint": "^8.72.1"
   },
   "overrides": {
     "postcss": "^8.5.10"
